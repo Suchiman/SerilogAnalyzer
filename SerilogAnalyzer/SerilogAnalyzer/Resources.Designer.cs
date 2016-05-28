@@ -64,27 +64,54 @@ namespace SerilogAnalyzer {
         /// <summary>
         ///   Looks up a localized string similar to Exceptions should be passed in the Exception Parameter.
         /// </summary>
-        internal static string AnalyzerDescription {
+        internal static string ExceptionAnalyzerDescription {
             get {
-                return ResourceManager.GetString("AnalyzerDescription", resourceCulture);
+                return ResourceManager.GetString("ExceptionAnalyzerDescription", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to The exception &apos;{0}&apos; should be passed as first argument.
         /// </summary>
-        internal static string AnalyzerMessageFormat {
+        internal static string ExceptionAnalyzerMessageFormat {
             get {
-                return ResourceManager.GetString("AnalyzerMessageFormat", resourceCulture);
+                return ResourceManager.GetString("ExceptionAnalyzerMessageFormat", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Exception not passed as first argument.
         /// </summary>
-        internal static string AnalyzerTitle {
+        internal static string ExceptionAnalyzerTitle {
             get {
-                return ResourceManager.GetString("AnalyzerTitle", resourceCulture);
+                return ResourceManager.GetString("ExceptionAnalyzerTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Checks for errors in the MessageTemplate.
+        /// </summary>
+        internal static string TemplateAnalyzerDescription {
+            get {
+                return ResourceManager.GetString("TemplateAnalyzerDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error while parsing MessageTemplate: {0}.
+        /// </summary>
+        internal static string TemplateAnalyzerMessageFormat {
+            get {
+                return ResourceManager.GetString("TemplateAnalyzerMessageFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to MessageTemplate Verifier.
+        /// </summary>
+        internal static string TemplateAnalyzerTitle {
+            get {
+                return ResourceManager.GetString("TemplateAnalyzerTitle", resourceCulture);
             }
         }
     }

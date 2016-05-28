@@ -54,7 +54,7 @@ namespace SerilogAnalyzer.Test
 
             var expected = new DiagnosticResult
             {
-                Id = "SerilogAnalyzer",
+                Id = "SerilogExceptionUsageAnalyzer",
                 Message = String.Format("The exception '{0}' should be passed as first argument", "ex"),
                 Severity = DiagnosticSeverity.Warning,
                 Locations = new[]
@@ -94,8 +94,6 @@ namespace SerilogAnalyzer.Test
             VerifyCSharpFix(test, fixtest);
         }
 
-
-
         //Diagnostic and CodeFix both triggered and checked for
         [TestMethod]
         public void TestMethodReturningExceptionInFormatArgs()
@@ -131,7 +129,7 @@ namespace SerilogAnalyzer.Test
 
             var expected = new DiagnosticResult
             {
-                Id = "SerilogAnalyzer",
+                Id = "SerilogExceptionUsageAnalyzer",
                 Message = String.Format("The exception '{0}' should be passed as first argument", "TestMethod(ex)"),
                 Severity = DiagnosticSeverity.Warning,
                 Locations = new[]
@@ -171,6 +169,99 @@ namespace SerilogAnalyzer.Test
         }
     }";
             VerifyCSharpFix(test, fixtest);
+        }
+
+        //Diagnostic and CodeFix both triggered and checked for
+        [TestMethod]
+        public void TestMissingBraceInTemplate()
+        {
+            var test = @"
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
+    using System.Diagnostics;
+    using Serilog;
+
+    namespace ConsoleApplication1
+    {
+        class TypeName
+        {
+            public static void Test()
+            {
+                ILogger test = null;
+                test.Warning(""Hello {Name World"", ""tester"");
+            }
+        }
+    }";
+
+            var expected = new DiagnosticResult
+            {
+                Id = "SerilogExceptionUsageAnalyzer",
+                Message = String.Format("The exception '{0}' should be passed as first argument", "ex"),
+                Severity = DiagnosticSeverity.Warning,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 22, 49)
+                }
+            };
+
+            VerifyCSharpDiagnostic(test, expected);
+        }
+
+        [TestMethod]
+        public void TestCorrectTemplate()
+        {
+            var test = @"
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
+    using System.Diagnostics;
+    using Serilog;
+
+    namespace ConsoleApplication1
+    {
+        class TypeName
+        {
+            public static void Test()
+            {
+                ILogger test = null;
+                test.Warning(""Hello {Name} World"", ""tester"");
+            }
+        }
+    }";
+
+            VerifyCSharpDiagnostic(test);
+        }
+
+        [TestMethod]
+        public void TestTemplateWithErroneousAlignment()
+        {
+            var test = @"
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
+    using System.Diagnostics;
+    using Serilog;
+
+    namespace ConsoleApplication1
+    {
+        class TypeName
+        {
+            public static void Test()
+            {
+                ILogger test = null;
+                test.Warning(""Hello {Name,} World"", ""tester"");
+            }
+        }
+    }";
+
+            VerifyCSharpDiagnostic(test);
         }
 
         protected override CodeFixProvider GetCSharpCodeFixProvider()

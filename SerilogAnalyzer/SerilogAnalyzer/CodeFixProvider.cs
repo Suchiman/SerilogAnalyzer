@@ -22,7 +22,7 @@ namespace SerilogAnalyzer
 
         public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(SerilogAnalyzerAnalyzer.DiagnosticId); }
+            get { return ImmutableArray.Create(SerilogAnalyzerAnalyzer.ExceptionDiagnosticId); }
         }
 
         public sealed override FixAllProvider GetFixAllProvider()

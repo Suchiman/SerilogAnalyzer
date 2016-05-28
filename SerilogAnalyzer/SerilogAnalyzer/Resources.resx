@@ -117,16 +117,28 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="AnalyzerDescription" xml:space="preserve">
+  <data name="ExceptionAnalyzerDescription" xml:space="preserve">
     <value>Exceptions should be passed in the Exception Parameter</value>
     <comment>An optional longer localizable description of the diagnostic.</comment>
   </data>
-  <data name="AnalyzerMessageFormat" xml:space="preserve">
+  <data name="ExceptionAnalyzerMessageFormat" xml:space="preserve">
     <value>The exception '{0}' should be passed as first argument</value>
     <comment>The format-able message the diagnostic displays.</comment>
   </data>
-  <data name="AnalyzerTitle" xml:space="preserve">
+  <data name="ExceptionAnalyzerTitle" xml:space="preserve">
     <value>Exception not passed as first argument</value>
+    <comment>The title of the diagnostic.</comment>
+  </data>
+  <data name="TemplateAnalyzerDescription" xml:space="preserve">
+    <value>Checks for errors in the MessageTemplate</value>
+    <comment>An optional longer localizable description of the diagnostic.</comment>
+  </data>
+  <data name="TemplateAnalyzerMessageFormat" xml:space="preserve">
+    <value>Error while parsing MessageTemplate: {0}</value>
+    <comment>The format-able message the diagnostic displays.</comment>
+  </data>
+  <data name="TemplateAnalyzerTitle" xml:space="preserve">
+    <value>MessageTemplate Verifier</value>
     <comment>The title of the diagnostic.</comment>
   </data>
 </root>
