@@ -171,45 +171,6 @@ namespace SerilogAnalyzer.Test
             VerifyCSharpFix(test, fixtest);
         }
 
-        //Diagnostic and CodeFix both triggered and checked for
-        [TestMethod]
-        public void TestMissingBraceInTemplate()
-        {
-            var test = @"
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
-    using System.Diagnostics;
-    using Serilog;
-
-    namespace ConsoleApplication1
-    {
-        class TypeName
-        {
-            public static void Test()
-            {
-                ILogger test = null;
-                test.Warning(""Hello {Name World"", ""tester"");
-            }
-        }
-    }";
-
-            var expected = new DiagnosticResult
-            {
-                Id = "SerilogExceptionUsageAnalyzer",
-                Message = String.Format("The exception '{0}' should be passed as first argument", "ex"),
-                Severity = DiagnosticSeverity.Warning,
-                Locations = new[]
-                {
-                    new DiagnosticResultLocation("Test0.cs", 22, 49)
-                }
-            };
-
-            VerifyCSharpDiagnostic(test, expected);
-        }
-
         [TestMethod]
         public void TestCorrectTemplate()
         {
@@ -240,28 +201,242 @@ namespace SerilogAnalyzer.Test
         [TestMethod]
         public void TestTemplateWithErroneousAlignment()
         {
-            var test = @"
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
-    using System.Diagnostics;
-    using Serilog;
+            string src = GetTemplateTestSource("Hello {Name:$} to the World");
 
-    namespace ConsoleApplication1
-    {
-        class TypeName
-        {
-            public static void Test()
+            var expected = new DiagnosticResult
             {
-                ILogger test = null;
-                test.Warning(""Hello {Name,} World"", ""tester"");
-            }
-        }
-    }";
+                Id = "SerilogMessageTemplateAnalyzer",
+                Message = String.Format("Error while parsing MessageTemplate: {0}", "Found invalid character '$' in property format"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 39)
+                }
+            };
 
-            VerifyCSharpDiagnostic(test);
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
+        [TestMethod]
+        public void TestTemplateWithInvalidFormat()
+        {
+            string src = GetTemplateTestSource("Hello {Name:$} to the World");
+
+            var expected = new DiagnosticResult
+            {
+                Id = "SerilogMessageTemplateAnalyzer",
+                Message = String.Format("Error while parsing MessageTemplate: {0}", "Found invalid character '$' in property format"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 39)
+                }
+            };
+
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
+        [TestMethod]
+        public void TestTemplateWithInvalidAlignment()
+        {
+            string src = GetTemplateTestSource("Hello {Name,b} to the World");
+
+            var expected = new DiagnosticResult
+            {
+                Id = "SerilogMessageTemplateAnalyzer",
+                Message = String.Format("Error while parsing MessageTemplate: {0}", "Found invalid character 'b' in property alignment"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 39)
+                }
+            };
+
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
+        [TestMethod]
+        public void TestTemplateWithAlignmentAndInvalidFormat()
+        {
+            string src = GetTemplateTestSource("Hello {Name,1:$} to the World");
+
+            var expected = new DiagnosticResult
+            {
+                Id = "SerilogMessageTemplateAnalyzer",
+                Message = String.Format("Error while parsing MessageTemplate: {0}", "Found invalid character '$' in property format"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 41)
+                }
+            };
+
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
+        [TestMethod]
+        public void TestTemplateWithMissingAlignment()
+        {
+            string src = GetTemplateTestSource("Hello {Name,} to the World");
+
+            var expected = new DiagnosticResult
+            {
+                Id = "SerilogMessageTemplateAnalyzer",
+                Message = String.Format("Error while parsing MessageTemplate: {0}", "Found alignment specifier without alignment"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 38)
+                }
+            };
+
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
+        [TestMethod]
+        public void TestTemplateWithZeroAlignment()
+        {
+            string src = GetTemplateTestSource("Hello {Name,0} to the World");
+
+            var expected = new DiagnosticResult
+            {
+                Id = "SerilogMessageTemplateAnalyzer",
+                Message = String.Format("Error while parsing MessageTemplate: {0}", "Found zero size alignment"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 39)
+                }
+            };
+
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
+        [TestMethod]
+        public void TestTemplateWithInvalidNegativeAlignment()
+        {
+            string src = GetTemplateTestSource("Hello {Name,1-} to the World");
+
+            var expected = new DiagnosticResult
+            {
+                Id = "SerilogMessageTemplateAnalyzer",
+                Message = String.Format("Error while parsing MessageTemplate: {0}", "'-' character must be the first in alignment"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 40)
+                }
+            };
+
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
+        [TestMethod]
+        public void TestTemplateWithUnclosedBrace()
+        {
+            string src = GetTemplateTestSource("Hello {Name to the World");
+
+            var expected = new DiagnosticResult
+            {
+                Id = "SerilogMessageTemplateAnalyzer",
+                Message = String.Format("Error while parsing MessageTemplate: {0}", "Encountered end of messageTemplate while parsing property"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 33)
+                }
+            };
+
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
+        [TestMethod]
+        public void TestTemplateWithoutName()
+        {
+            string src = GetTemplateTestSource("Hello {} the World");
+
+            var expected = new DiagnosticResult
+            {
+                Id = "SerilogMessageTemplateAnalyzer",
+                Message = String.Format("Error while parsing MessageTemplate: {0}", "Found property without name"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 33)
+                }
+            };
+
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
+        [TestMethod]
+        public void TestTemplateWithInvalidName()
+        {
+            string src = GetTemplateTestSource("Hello {§} the World");
+
+            var expected = new DiagnosticResult
+            {
+                Id = "SerilogMessageTemplateAnalyzer",
+                Message = String.Format("Error while parsing MessageTemplate: {0}", "Found invalid character '§' in property"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 34)
+                }
+            };
+
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
+        [TestMethod]
+        public void TestTemplateWithDestructuringButMissingName()
+        {
+            string src = GetTemplateTestSource("Hello {@} the World");
+
+            var expected = new DiagnosticResult
+            {
+                Id = "SerilogMessageTemplateAnalyzer",
+                Message = String.Format("Error while parsing MessageTemplate: {0}", "Found property with destructuring hint but without name"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 33)
+                }
+            };
+
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
+        [TestMethod]
+        public void TestTemplateWithDestructuringButInvalidName()
+        {
+            string src = GetTemplateTestSource("Hello {@ } the World");
+
+            var expected = new DiagnosticResult
+            {
+                Id = "SerilogMessageTemplateAnalyzer",
+                Message = String.Format("Error while parsing MessageTemplate: {0}", "Found invalid character ' ' in property name"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 35)
+                }
+            };
+
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
+        private string GetTemplateTestSource(string line)
+        {
+            return $@"
+class Program
+{{
+    static void Main()
+    {{
+        Serilog.ILogger test = null;
+        test.Information(""{line}"", ""tester"");
+    }}
+}}";
         }
 
         protected override CodeFixProvider GetCSharpCodeFixProvider()

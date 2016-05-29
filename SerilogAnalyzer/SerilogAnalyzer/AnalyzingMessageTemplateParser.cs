@@ -66,7 +66,8 @@ namespace SerilogAnalyzer
             }
 
             var propertyName = propertyNameAndDestructuring;
-            if (IsValidInDestructuringHint(propertyName[0]))
+            bool hasDestructuring = IsValidInDestructuringHint(propertyName[0]);
+            if (hasDestructuring)
                 propertyName = propertyName.Substring(1);
 
             if (propertyName == "")
@@ -76,7 +77,7 @@ namespace SerilogAnalyzer
             {
                 var c = propertyName[i];
                 if (!IsValidInPropertyName(c))
-                    return new MessageTemplateDiagnostic(first, rawText.Length, "Found invalid character '" + c.ToString() + "' in property name");
+                    return new MessageTemplateDiagnostic(first + (hasDestructuring ? 1 : 0) + 1 + i, 1, "Found invalid character '" + c.ToString() + "' in property name");
             }
 
             if (format != null)
@@ -85,7 +86,7 @@ namespace SerilogAnalyzer
                 {
                     var c = format[i];
                     if (!IsValidInFormat(c))
-                        return new MessageTemplateDiagnostic(first, rawText.Length, "Found invalid character '" + c.ToString() + "' in property format");
+                        return new MessageTemplateDiagnostic(first + propertyNameAndDestructuring.Length + (alignment?.Length + 1 ?? 0) + 2 + i, 1, "Found invalid character '" + c.ToString() + "' in property format");
                 }
             }
 
@@ -95,19 +96,19 @@ namespace SerilogAnalyzer
                 {
                     var c = alignment[i];
                     if (!IsValidInAlignment(c))
-                        return new MessageTemplateDiagnostic(first, rawText.Length, "Found invalid character '" + c.ToString() + "' in property alignment");
+                        return new MessageTemplateDiagnostic(first + propertyNameAndDestructuring.Length + 2 + i, 1, "Found invalid character '" + c.ToString() + "' in property alignment");
                 }
 
                 var lastDash = alignment.LastIndexOf('-');
                 if (lastDash > 0)
-                    return new MessageTemplateDiagnostic(first, rawText.Length, "'-' character must be the first in alignment");
+                    return new MessageTemplateDiagnostic(first + propertyNameAndDestructuring.Length + 2 + lastDash, 1, "'-' character must be the first in alignment");
 
                 var width = lastDash == -1 ?
                     int.Parse(alignment) :
                     int.Parse(alignment.Substring(1));
 
                 if (width == 0)
-                    return new MessageTemplateDiagnostic(first, rawText.Length, "Found zero size alignment");
+                    return new MessageTemplateDiagnostic(first + propertyNameAndDestructuring.Length + 2, alignment.Length, "Found zero size alignment");
             }
 
             return null;
