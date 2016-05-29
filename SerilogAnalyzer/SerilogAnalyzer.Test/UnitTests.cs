@@ -66,7 +66,7 @@ namespace SerilogAnalyzer.Test
 
             var expected = new DiagnosticResult
             {
-                Id = "SerilogExceptionUsageAnalyzer",
+                Id = "Serilog001",
                 Message = String.Format("The exception '{0}' should be passed as first argument", "ex"),
                 Severity = DiagnosticSeverity.Warning,
                 Locations = new[]
@@ -141,7 +141,7 @@ namespace SerilogAnalyzer.Test
 
             var expected = new DiagnosticResult
             {
-                Id = "SerilogExceptionUsageAnalyzer",
+                Id = "Serilog001",
                 Message = String.Format("The exception '{0}' should be passed as first argument", "TestMethod(ex)"),
                 Severity = DiagnosticSeverity.Warning,
                 Locations = new[]
@@ -217,7 +217,7 @@ namespace SerilogAnalyzer.Test
 
             var expected = new DiagnosticResult
             {
-                Id = "SerilogMessageTemplateAnalyzer",
+                Id = "Serilog002",
                 Message = String.Format("Error while parsing MessageTemplate: {0}", "Found invalid character '$' in property format"),
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
@@ -236,7 +236,7 @@ namespace SerilogAnalyzer.Test
 
             var expected = new DiagnosticResult
             {
-                Id = "SerilogMessageTemplateAnalyzer",
+                Id = "Serilog002",
                 Message = String.Format("Error while parsing MessageTemplate: {0}", "Found invalid character '$' in property format"),
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
@@ -255,7 +255,7 @@ namespace SerilogAnalyzer.Test
 
             var expected = new DiagnosticResult
             {
-                Id = "SerilogMessageTemplateAnalyzer",
+                Id = "Serilog002",
                 Message = String.Format("Error while parsing MessageTemplate: {0}", "Found invalid character 'b' in property alignment"),
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
@@ -274,7 +274,7 @@ namespace SerilogAnalyzer.Test
 
             var expected = new DiagnosticResult
             {
-                Id = "SerilogMessageTemplateAnalyzer",
+                Id = "Serilog002",
                 Message = String.Format("Error while parsing MessageTemplate: {0}", "Found invalid character '$' in property format"),
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
@@ -293,7 +293,7 @@ namespace SerilogAnalyzer.Test
 
             var expected = new DiagnosticResult
             {
-                Id = "SerilogMessageTemplateAnalyzer",
+                Id = "Serilog002",
                 Message = String.Format("Error while parsing MessageTemplate: {0}", "Found alignment specifier without alignment"),
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
@@ -312,7 +312,7 @@ namespace SerilogAnalyzer.Test
 
             var expected = new DiagnosticResult
             {
-                Id = "SerilogMessageTemplateAnalyzer",
+                Id = "Serilog002",
                 Message = String.Format("Error while parsing MessageTemplate: {0}", "Found zero size alignment"),
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
@@ -331,7 +331,7 @@ namespace SerilogAnalyzer.Test
 
             var expected = new DiagnosticResult
             {
-                Id = "SerilogMessageTemplateAnalyzer",
+                Id = "Serilog002",
                 Message = String.Format("Error while parsing MessageTemplate: {0}", "'-' character must be the first in alignment"),
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
@@ -350,7 +350,7 @@ namespace SerilogAnalyzer.Test
 
             var expected = new DiagnosticResult
             {
-                Id = "SerilogMessageTemplateAnalyzer",
+                Id = "Serilog002",
                 Message = String.Format("Error while parsing MessageTemplate: {0}", "Encountered end of messageTemplate while parsing property"),
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
@@ -369,7 +369,7 @@ namespace SerilogAnalyzer.Test
 
             var expected = new DiagnosticResult
             {
-                Id = "SerilogMessageTemplateAnalyzer",
+                Id = "Serilog002",
                 Message = String.Format("Error while parsing MessageTemplate: {0}", "Found property without name"),
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
@@ -388,7 +388,7 @@ namespace SerilogAnalyzer.Test
 
             var expected = new DiagnosticResult
             {
-                Id = "SerilogMessageTemplateAnalyzer",
+                Id = "Serilog002",
                 Message = String.Format("Error while parsing MessageTemplate: {0}", "Found invalid character '§' in property"),
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
@@ -407,7 +407,7 @@ namespace SerilogAnalyzer.Test
 
             var expected = new DiagnosticResult
             {
-                Id = "SerilogMessageTemplateAnalyzer",
+                Id = "Serilog002",
                 Message = String.Format("Error while parsing MessageTemplate: {0}", "Found property with destructuring hint but without name"),
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
@@ -426,7 +426,7 @@ namespace SerilogAnalyzer.Test
 
             var expected = new DiagnosticResult
             {
-                Id = "SerilogMessageTemplateAnalyzer",
+                Id = "Serilog002",
                 Message = String.Format("Error while parsing MessageTemplate: {0}", "Found invalid character ' ' in property name"),
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
