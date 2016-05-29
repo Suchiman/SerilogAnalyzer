@@ -67,25 +67,61 @@ namespace SerilogAnalyzer
             string messageTemplateName = attributeData.ConstructorArguments.First().Value as string;
 
             // check for errors in the MessageTemplate
+            var hasErrors = false;
+            var literalSpan = default(TextSpan);
+            var exactPositions = true;
+            var stringOffset = 1;
             foreach (var argument in invocation.ArgumentList.Arguments)
             {
                 var paramter = DetermineParameter(argument, context.SemanticModel, true, context.CancellationToken);
                 if (paramter.Name == messageTemplateName)
                 {
+                    string messageTemplate;
+
+                    // is it a simple string literal?
                     var literal = argument.Expression as LiteralExpressionSyntax;
                     if (literal == null)
                     {
-                        continue;
+                        // can we at least get a computed constant value for it?
+                        var constantValue = context.SemanticModel.GetConstantValue(argument.Expression, context.CancellationToken);
+                        if (!constantValue.HasValue || !(constantValue.Value is string))
+                        {
+                            continue;
+                        }
+
+                        // we can't map positions back from the computed string into the real positions
+                        exactPositions = false;
+                        messageTemplate = constantValue.Value as string;
+                    }
+                    else
+                    {
+                        // is this literal escaping free?
+                        var index = literal.Token.Text.IndexOf(literal.Token.ValueText, StringComparison.Ordinal);
+                        if (index != -1)
+                        {
+                            stringOffset = index;
+                        }
+                        //TODO: more complex logic to remap exact locations in the presence of escapes
+                        else
+                        {
+                            stringOffset = literal.Token.Text.StartsWith("@", StringComparison.Ordinal) ? 2 : 1;
+                            exactPositions = false;
+                        }
+
+                        messageTemplate = literal.Token.ValueText;
                     }
 
-                    var literalSpan = literal.GetLocation().SourceSpan;
+                    literalSpan = argument.Expression.GetLocation().SourceSpan;
 
-                    var messageTemplateDiagnostics = AnalyzingMessageTemplateParser.Analyze(literal.Token.ValueText);
+                    var messageTemplateDiagnostics = AnalyzingMessageTemplateParser.Analyze(messageTemplate);
                     foreach (var templateDiagnostic in messageTemplateDiagnostics)
                     {
-                        var textSpan = new TextSpan(templateDiagnostic.StartIndex + literalSpan.Start + 1, templateDiagnostic.Length);
-                        var sourceLocation = Location.Create(context.Node.SyntaxTree, textSpan);
-                        context.ReportDiagnostic(Diagnostic.Create(TemplateRule, sourceLocation, templateDiagnostic.Diagnostic));
+                        var diagnostic = templateDiagnostic as MessageTemplateDiagnostic;
+                        if (diagnostic != null)
+                        {
+                            hasErrors = true;
+                            ReportDiagnostic(ref context, ref literalSpan, stringOffset, exactPositions, TemplateRule, diagnostic);
+                        }
                     }
                     break;
                 }
@@ -113,6 +149,28 @@ namespace SerilogAnalyzer
                     context.ReportDiagnostic(Diagnostic.Create(ExceptionRule, argument.GetLocation(), argument.Expression.ToFullString()));
                 }
             }
+        }
+
+        private static void ReportDiagnostic(ref SyntaxNodeAnalysisContext context, ref TextSpan literalSpan, int stringOffset, bool exactPositions, DiagnosticDescriptor rule, MessageTemplateDiagnostic diagnostic)
+        {
+            TextSpan textSpan;
+            if (diagnostic.MustBeRemapped)
+            {
+                if (!exactPositions)
+                {
+                    textSpan = literalSpan;
+                }
+                else
+                {
+                    textSpan = new TextSpan(diagnostic.StartIndex + literalSpan.Start + stringOffset, diagnostic.Length);
+                }
+            }
+            else
+            {
+                textSpan = new TextSpan(diagnostic.StartIndex, diagnostic.Length);
+            }
+            var sourceLocation = Location.Create(context.Node.SyntaxTree, textSpan);
+            context.ReportDiagnostic(Diagnostic.Create(rule, sourceLocation, diagnostic.Diagnostic));
         }
 
         private static bool IsException(ITypeSymbol exceptionSymbol, ITypeSymbol type)
