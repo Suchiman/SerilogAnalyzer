@@ -165,4 +165,16 @@
     <value>MessageTemplate verifier</value>
     <comment>The title of the diagnostic.</comment>
   </data>
+  <data name="UniquePropertyNameAnalyzerDescription" xml:space="preserve">
+    <value>Checks that all property names in a MessageTemplates are unique</value>
+    <comment>An optional longer localizable description of the diagnostic.</comment>
+  </data>
+  <data name="UniquePropertyNameAnalyzerMessageFormat" xml:space="preserve">
+    <value>Property name '{0}' is not unique in this MessageTemplate</value>
+    <comment>The format-able message the diagnostic displays.</comment>
+  </data>
+  <data name="UniquePropertyNameAnalyzerTitle" xml:space="preserve">
+    <value>Unique Property name verifier</value>
+    <comment>The title of the diagnostic.</comment>
+  </data>
 </root>

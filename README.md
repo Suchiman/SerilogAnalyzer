@@ -13,3 +13,6 @@ Checks coherence between the MessageTemplate properties and the supplied argumen
 
 ## Serilog004: Constant MessageTemplate verifier
 Checks that MessageTemplates are constant values which is recommended practice so that events with different data / format arguments can be detected as the same event.
+
+## Serilog005: Unique Property name verifier
+Checks that all property names in a MessageTemplates are unique

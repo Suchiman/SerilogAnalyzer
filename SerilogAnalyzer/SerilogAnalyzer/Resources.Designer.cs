@@ -168,5 +168,32 @@ namespace SerilogAnalyzer {
                 return ResourceManager.GetString("TemplateAnalyzerTitle", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Checks that all property names in a MessageTemplates are unique.
+        /// </summary>
+        internal static string UniquePropertyNameAnalyzerDescription {
+            get {
+                return ResourceManager.GetString("UniquePropertyNameAnalyzerDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Property name &apos;{0}&apos; is not unique in this MessageTemplate.
+        /// </summary>
+        internal static string UniquePropertyNameAnalyzerMessageFormat {
+            get {
+                return ResourceManager.GetString("UniquePropertyNameAnalyzerMessageFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unique Property name verifier.
+        /// </summary>
+        internal static string UniquePropertyNameAnalyzerTitle {
+            get {
+                return ResourceManager.GetString("UniquePropertyNameAnalyzerTitle", resourceCulture);
+            }
+        }
     }
 }

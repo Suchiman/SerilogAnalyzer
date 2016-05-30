@@ -630,6 +630,24 @@ class Program
             VerifyCSharpDiagnostic(src, expected);
         }
 
+        [TestMethod]
+        public void TestUniquePropertyNameRule()
+        {
+            string src = GetTemplateTestSource("{Tester} chats with {Tester}", "tester1", "tester2");
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog005",
+                Message = String.Format("Property name '{0}' is not unique in this MessageTemplate", "Tester"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 47)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
         protected override CodeFixProvider GetCSharpCodeFixProvider()
         {
             return new SerilogAnalyzerCodeFixProvider();
