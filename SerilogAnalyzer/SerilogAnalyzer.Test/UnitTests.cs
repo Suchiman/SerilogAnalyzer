@@ -600,6 +600,36 @@ class Program
             VerifyCSharpDiagnostic(src, expected);
         }
 
+        [TestMethod]
+        public void TestNonConstantMessageTemplateWarning()
+        {
+            string src = @"
+    using Serilog;
+
+    class TypeName
+    {
+        public static void Test()
+        {
+            var errorMessage = TryToCheckOutOrder();
+            Log.Error(errorMessage);
+        }
+
+        public static string TryToCheckOutOrder() => ""Something bad happened"";
+    }";
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog004",
+                Message = String.Format("MessageTemplate argument {0} is not constant", "errorMessage"),
+                Severity = DiagnosticSeverity.Warning,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 9, 23)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
         protected override CodeFixProvider GetCSharpCodeFixProvider()
         {
             return new SerilogAnalyzerCodeFixProvider();

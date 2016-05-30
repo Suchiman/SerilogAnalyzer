@@ -62,6 +62,33 @@ namespace SerilogAnalyzer {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Checks that MessageTemplates are constant values which is recommended practice.
+        /// </summary>
+        internal static string ConstantMessageTemplateAnalyzerDescription {
+            get {
+                return ResourceManager.GetString("ConstantMessageTemplateAnalyzerDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to MessageTemplate argument {0} is not constant.
+        /// </summary>
+        internal static string ConstantMessageTemplateAnalyzerMessageFormat {
+            get {
+                return ResourceManager.GetString("ConstantMessageTemplateAnalyzerMessageFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Constant MessageTemplate verifier.
+        /// </summary>
+        internal static string ConstantMessageTemplateAnalyzerTitle {
+            get {
+                return ResourceManager.GetString("ConstantMessageTemplateAnalyzerTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Exceptions should be passed in the Exception Parameter.
         /// </summary>
         internal static string ExceptionAnalyzerDescription {

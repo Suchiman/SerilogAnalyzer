@@ -10,3 +10,6 @@ Checks your messageTemplate for correct syntax and emits an error if there's a v
 
 ## Serilog003: Property binding verifier
 Checks coherence between the MessageTemplate properties and the supplied arguments
+
+## Serilog004: Constant MessageTemplate verifier
+Checks that MessageTemplates are constant values which is recommended practice so that events with different data / format arguments can be detected as the same event.
