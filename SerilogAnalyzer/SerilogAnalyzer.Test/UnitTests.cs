@@ -25,7 +25,6 @@ namespace SerilogAnalyzer.Test
     [TestClass]
     public class UnitTest : CodeFixVerifier
     {
-        //No diagnostics expected to show up
         [TestMethod]
         public void TestNoCode()
         {
@@ -34,7 +33,6 @@ namespace SerilogAnalyzer.Test
             VerifyCSharpDiagnostic(test);
         }
 
-        //Diagnostic and CodeFix both triggered and checked for
         [TestMethod]
         public void TestLocalExceptionInFormatArgs()
         {
@@ -119,7 +117,6 @@ namespace SerilogAnalyzer.Test
             VerifyCSharpFix(test, fixtest);
         }
 
-        //Diagnostic and CodeFix both triggered and checked for
         [TestMethod]
         public void TestMethodReturningExceptionInFormatArgs()
         {
@@ -547,9 +544,7 @@ class Program
                 }
             };
             VerifyCSharpDiagnostic(src, expected);
-            //            string src = GetTemplateTestSource("{0}", "Mr.", "Tester");
-        }//There is no positional property that corresponds to this argument
-
+        }
 
         [TestMethod]
         public void TestMoreArgumentsThanPositionalProperties()
@@ -564,6 +559,42 @@ class Program
                 Locations = new[]
                 {
                     new DiagnosticResultLocation("Test0.cs", 7, 40)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
+        [TestMethod]
+        public void TestNoPropertiesWithArgument()
+        {
+            string src = GetTemplateTestSource("");
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog003",
+                Message = String.Format("Error while binding properties: {0}", "There is no property that corresponds to this argument"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 30)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
+        [TestMethod]
+        public void TestPositionalAndNamedMix()
+        {
+            string src = GetTemplateTestSource("{0} mixed with {Kind} Property", "positional", "named");
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog003",
+                Message = String.Format("Error while binding properties: {0}", "Positional properties are not allowed, when named properties are being used"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 27)
                 }
             };
             VerifyCSharpDiagnostic(src, expected);

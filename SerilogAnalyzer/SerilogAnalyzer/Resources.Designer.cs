@@ -107,7 +107,7 @@ namespace SerilogAnalyzer {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Property argument Verifier.
+        ///   Looks up a localized string similar to Property binding verifier.
         /// </summary>
         internal static string PropertyBindingAnalyzerTitle {
             get {
@@ -134,7 +134,7 @@ namespace SerilogAnalyzer {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to MessageTemplate Verifier.
+        ///   Looks up a localized string similar to MessageTemplate verifier.
         /// </summary>
         internal static string TemplateAnalyzerTitle {
             get {
