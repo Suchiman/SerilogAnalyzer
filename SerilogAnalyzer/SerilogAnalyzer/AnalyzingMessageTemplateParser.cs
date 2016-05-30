@@ -20,7 +20,7 @@ namespace SerilogAnalyzer
 {
     static class AnalyzingMessageTemplateParser
     {
-        public static IEnumerable<MessageTemplateDiagnostic> Analyze(string messageTemplate)
+        public static IEnumerable<MessageTemplateToken> Analyze(string messageTemplate)
         {
             if (messageTemplate == null)
                 throw new ArgumentNullException(nameof(messageTemplate));
@@ -38,7 +38,7 @@ namespace SerilogAnalyzer
 
                 var beforeProp = nextIndex;
                 var pt = ParsePropertyToken(nextIndex, messageTemplate, out nextIndex);
-                if (beforeProp < nextIndex && pt != null)
+                if (beforeProp < nextIndex)
                     yield return pt;
 
                 if (nextIndex == messageTemplate.Length)
@@ -46,7 +46,7 @@ namespace SerilogAnalyzer
             }
         }
 
-        static MessageTemplateDiagnostic ParsePropertyToken(int startAt, string messageTemplate, out int next)
+        static MessageTemplateToken ParsePropertyToken(int startAt, string messageTemplate, out int next)
         {
             var first = startAt;
             startAt++;
@@ -126,7 +126,7 @@ namespace SerilogAnalyzer
                     return new MessageTemplateDiagnostic(first + propertyNameAndDestructuring.Length + 2, alignment.Length, "Found zero size alignment");
             }
 
-            return null;
+            return new PropertyToken(first, propertyName, rawText);
         }
 
         static bool TrySplitTagContent(string tagContent, out string propertyNameAndDestructuring, out string format, out string alignment, out MessageTemplateDiagnostic diagnostic)
@@ -258,17 +258,16 @@ namespace SerilogAnalyzer
         }
     }
 
-    class MessageTemplateDiagnostic
+    class MessageTemplateDiagnostic : MessageTemplateToken
     {
-        public int StartIndex { get; set; }
-        public int Length { get; set; }
         public string Diagnostic { get; set; }
+        public bool MustBeRemapped { get; set; }
 
-        public MessageTemplateDiagnostic(int startIndex, int length, string diagnostic = null)
+        public MessageTemplateDiagnostic(int startIndex, int length, string diagnostic = null, bool mustBeRemapped = true)
+            : base(startIndex, length)
         {
-            StartIndex = startIndex;
-            Length = length;
             Diagnostic = diagnostic;
+            MustBeRemapped = mustBeRemapped;
         }
     }
 }

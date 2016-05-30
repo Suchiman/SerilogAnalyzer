@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using System;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -64,7 +65,19 @@ namespace SerilogAnalyzer.Test
         }
     }";
 
-            var expected = new DiagnosticResult
+            // Test0.cs(22,49): error Serilog003: Error while binding properties: There is no property that corresponds to this argument
+            // Test0.cs(22,49): warning Serilog001: The exception 'ex' should be passed as first argument
+            var expected003 = new DiagnosticResult
+            {
+                Id = "Serilog003",
+                Message = String.Format("Error while binding properties: {0}", "There is no property that corresponds to this argument"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 22, 49)
+                }
+            };
+            var expected001 = new DiagnosticResult
             {
                 Id = "Serilog001",
                 Message = String.Format("The exception '{0}' should be passed as first argument", "ex"),
@@ -75,7 +88,7 @@ namespace SerilogAnalyzer.Test
                 }
             };
 
-            VerifyCSharpDiagnostic(test, expected);
+            VerifyCSharpDiagnostic(test, expected003, expected001);
 
             var fixtest = @"
     using System;
@@ -139,7 +152,17 @@ namespace SerilogAnalyzer.Test
         }
     }";
 
-            var expected = new DiagnosticResult
+            var expected003 = new DiagnosticResult
+            {
+                Id = "Serilog003",
+                Message = String.Format("Error while binding properties: {0}", "There is no property that corresponds to this argument"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 22, 49)
+                }
+            };
+            var expected001 = new DiagnosticResult
             {
                 Id = "Serilog001",
                 Message = String.Format("The exception '{0}' should be passed as first argument", "TestMethod(ex)"),
@@ -150,7 +173,7 @@ namespace SerilogAnalyzer.Test
                 }
             };
 
-            VerifyCSharpDiagnostic(test, expected);
+            VerifyCSharpDiagnostic(test, expected003, expected001);
 
             var fixtest = @"
     using System;
@@ -449,6 +472,101 @@ class Program
         test.Information(""{line}"", ""tester"");
     }}
 }}";
+        }
+
+        private string GetTemplateTestSource(string line, params string[] args)
+        {
+            return $@"
+class Program
+{{
+    static void Main()
+    {{
+        Serilog.ILogger test = null;
+        test.Information(""{line}"", {String.Join(", ", args.Select(x => "\"" + x + "\""))});
+    }}
+}}";
+        }
+
+        [TestMethod]
+        public void TestCorrectParameterCount()
+        {
+            string src = GetTemplateTestSource("{User} did {Action} {Subject}", "tester", "knock over", "a sack of rice");
+
+            VerifyCSharpDiagnostic(src);
+        }
+
+        [TestMethod]
+        public void TestMoreArgumentsThanNamedProperties()
+        {
+            string src = GetTemplateTestSource("{User} did {Action}", "tester", "knock over", "a sack of rice");
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog003",
+                Message = String.Format("Error while binding properties: {0}", "There is no named property that corresponds to this argument"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 73)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
+        [TestMethod]
+        public void TestMoreNamedPropertiesThanArguments()
+        {
+            string src = GetTemplateTestSource("{User} did {Action} {Subject}", "tester", "knock over");
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog003",
+                Message = String.Format("Error while binding properties: {0}", "There is no argument that corresponds to the named property 'Subject'"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 47)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
+        [TestMethod]
+        public void TestBiggerPositionalPropertyThanArguments()
+        {
+            string src = GetTemplateTestSource("{1}");
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog003",
+                Message = String.Format("Error while binding properties: {0}", "There is no argument that corresponds to the positional property 1"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 27)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+            //            string src = GetTemplateTestSource("{0}", "Mr.", "Tester");
+        }//There is no positional property that corresponds to this argument
+
+
+        [TestMethod]
+        public void TestMoreArgumentsThanPositionalProperties()
+        {
+            string src = GetTemplateTestSource("{0}", "Mr.", "Tester");
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog003",
+                Message = String.Format("Error while binding properties: {0}", "There is no positional property that corresponds to this argument"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 40)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
         }
 
         protected override CodeFixProvider GetCSharpCodeFixProvider()

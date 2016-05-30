@@ -129,6 +129,18 @@
     <value>Exception not passed as first argument</value>
     <comment>The title of the diagnostic.</comment>
   </data>
+  <data name="PropertyBindingAnalyzerDescription" xml:space="preserve">
+    <value>Checks wether properties and arguments match up</value>
+    <comment>An optional longer localizable description of the diagnostic.</comment>
+  </data>
+  <data name="PropertyBindingAnalyzerMessageFormat" xml:space="preserve">
+    <value>Error while binding properties: {0}</value>
+    <comment>The format-able message the diagnostic displays.</comment>
+  </data>
+  <data name="PropertyBindingAnalyzerTitle" xml:space="preserve">
+    <value>Property argument Verifier</value>
+    <comment>The title of the diagnostic.</comment>
+  </data>
   <data name="TemplateAnalyzerDescription" xml:space="preserve">
     <value>Checks for errors in the MessageTemplate</value>
     <comment>An optional longer localizable description of the diagnostic.</comment>

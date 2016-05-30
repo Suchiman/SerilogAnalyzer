@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
@@ -38,7 +40,13 @@ namespace SerilogAnalyzer
         private static readonly LocalizableString TemplateDescription = new LocalizableResourceString(nameof(Resources.TemplateAnalyzerDescription), Resources.ResourceManager, typeof(Resources));
         private static DiagnosticDescriptor TemplateRule = new DiagnosticDescriptor(TemplateDiagnosticId, TemplateTitle, TemplateMessageFormat, "CodeQuality", DiagnosticSeverity.Error, isEnabledByDefault: true, description: TemplateDescription);
 
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get { return ImmutableArray.Create(ExceptionRule, TemplateRule); } }
+        public const string PropertyBindingDiagnosticId = "Serilog003";
+        private static readonly LocalizableString PropertyBindingTitle = new LocalizableResourceString(nameof(Resources.PropertyBindingAnalyzerTitle), Resources.ResourceManager, typeof(Resources));
+        private static readonly LocalizableString PropertyBindingMessageFormat = new LocalizableResourceString(nameof(Resources.PropertyBindingAnalyzerMessageFormat), Resources.ResourceManager, typeof(Resources));
+        private static readonly LocalizableString PropertyBindingDescription = new LocalizableResourceString(nameof(Resources.PropertyBindingAnalyzerDescription), Resources.ResourceManager, typeof(Resources));
+        private static DiagnosticDescriptor PropertyBindingRule = new DiagnosticDescriptor(PropertyBindingDiagnosticId, PropertyBindingTitle, PropertyBindingMessageFormat, "CodeQuality", DiagnosticSeverity.Error, isEnabledByDefault: true, description: PropertyBindingDescription);
+
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get { return ImmutableArray.Create(ExceptionRule, TemplateRule, PropertyBindingRule); } }
 
         public override void Initialize(AnalysisContext context)
         {
@@ -67,6 +75,8 @@ namespace SerilogAnalyzer
             string messageTemplateName = attributeData.ConstructorArguments.First().Value as string;
 
             // check for errors in the MessageTemplate
+            var arguments = new List<SourceArgument>();
+            var properties = new List<PropertyToken>();
             var hasErrors = false;
             var literalSpan = default(TextSpan);
             var exactPositions = true;
@@ -116,6 +126,13 @@ namespace SerilogAnalyzer
                     var messageTemplateDiagnostics = AnalyzingMessageTemplateParser.Analyze(messageTemplate);
                     foreach (var templateDiagnostic in messageTemplateDiagnostics)
                     {
+                        var property = templateDiagnostic as PropertyToken;
+                        if (property != null)
+                        {
+                            properties.Add(property);
+                            continue;
+                        }
+
                         var diagnostic = templateDiagnostic as MessageTemplateDiagnostic;
                         if (diagnostic != null)
                         {
@@ -123,7 +140,21 @@ namespace SerilogAnalyzer
                             ReportDiagnostic(ref context, ref literalSpan, stringOffset, exactPositions, TemplateRule, diagnostic);
                         }
                     }
-                    break;
+                }
+                else if (paramter.Name.StartsWith("propertyValue", StringComparison.Ordinal))
+                {
+                    var location = argument.GetLocation().SourceSpan;
+                    arguments.Add(new SourceArgument { StartIndex = location.Start, Length = location.Length });
+                }
+            }
+
+            // do properties match up?
+            if (!hasErrors && literalSpan != default(TextSpan) && (arguments.Count > 0 || properties.Count > 0))
+            {
+                var diagnostics = PropertyBindingAnalyzer.AnalyzeProperties(properties, arguments);
+                foreach (var diagnostic in diagnostics)
+                {
+                    ReportDiagnostic(ref context, ref literalSpan, stringOffset, exactPositions, PropertyBindingRule, diagnostic);
                 }
             }
 

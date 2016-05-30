@@ -89,6 +89,33 @@ namespace SerilogAnalyzer {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Checks wether properties and arguments match up.
+        /// </summary>
+        internal static string PropertyBindingAnalyzerDescription {
+            get {
+                return ResourceManager.GetString("PropertyBindingAnalyzerDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error while binding properties: {0}.
+        /// </summary>
+        internal static string PropertyBindingAnalyzerMessageFormat {
+            get {
+                return ResourceManager.GetString("PropertyBindingAnalyzerMessageFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Property argument Verifier.
+        /// </summary>
+        internal static string PropertyBindingAnalyzerTitle {
+            get {
+                return ResourceManager.GetString("PropertyBindingAnalyzerTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Checks for errors in the MessageTemplate.
         /// </summary>
         internal static string TemplateAnalyzerDescription {
