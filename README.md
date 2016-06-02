@@ -2,6 +2,8 @@
 
 Roslyn-based analysis for code using the [Serilog](http://serilog.net) logging library. Checks for common mistakes and usage problems.
 
+![SerilogAnalyzer](https://raw.githubusercontent.com/nblumhardt/images/master/serilog-analyzer-example.gif)
+
 ## Installing (Visual Studio)
 
 Download and double-click the latest VSIX from the [releases list](https://github.com/Suchiman/SerilogAnalyzer/releases).
