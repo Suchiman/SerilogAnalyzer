@@ -75,9 +75,15 @@ namespace SerilogAnalyzer
                 return;
             }
 
+            // is serilog even present in the compilation?
+            var messageTemplateAttribute = context.SemanticModel.Compilation.GetTypeByMetadataName("Serilog.Core.MessageTemplateFormatMethodAttribute");
+            if (messageTemplateAttribute == null)
+            {
+                return;
+            }
+
             // is it a serilog logging method?
             var attributes = method.GetAttributes();
-            var messageTemplateAttribute = context.SemanticModel.Compilation.GetTypeByMetadataName("Serilog.Core.MessageTemplateFormatMethodAttribute");
             var attributeData = attributes.FirstOrDefault(x => x.AttributeClass == messageTemplateAttribute);
             if (attributeData == null)
             {
