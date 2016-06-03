@@ -98,7 +98,7 @@ namespace SerilogAnalyzer
             var hasErrors = false;
             var literalSpan = default(TextSpan);
             var exactPositions = true;
-            var stringOffset = 1;
+            var stringText = default(string);
             foreach (var argument in invocation.ArgumentList.Arguments)
             {
                 var paramter = DetermineParameter(argument, context.SemanticModel, true, context.CancellationToken);
@@ -124,18 +124,8 @@ namespace SerilogAnalyzer
                     }
                     else
                     {
-                        // is this literal escaping free?
-                        var index = literal.Token.Text.IndexOf(literal.Token.ValueText, StringComparison.Ordinal);
-                        if (index != -1)
-                        {
-                            stringOffset = index;
-                        }
-                        //TODO: more complex logic to remap exact locations in the presence of escapes
-                        else
-                        {
-                            stringOffset = literal.Token.Text.StartsWith("@", StringComparison.Ordinal) ? 2 : 1;
-                            exactPositions = false;
-                        }
+                        stringText = literal.Token.Text;
+                        exactPositions = true;
 
                         messageTemplate = literal.Token.ValueText;
                     }
@@ -156,7 +146,7 @@ namespace SerilogAnalyzer
                         if (diagnostic != null)
                         {
                             hasErrors = true;
-                            ReportDiagnostic(ref context, ref literalSpan, stringOffset, exactPositions, TemplateRule, diagnostic);
+                            ReportDiagnostic(ref context, ref literalSpan, stringText, exactPositions, TemplateRule, diagnostic);
                         }
                     }
                 }
@@ -173,7 +163,7 @@ namespace SerilogAnalyzer
                 var diagnostics = PropertyBindingAnalyzer.AnalyzeProperties(properties, arguments);
                 foreach (var diagnostic in diagnostics)
                 {
-                    ReportDiagnostic(ref context, ref literalSpan, stringOffset, exactPositions, PropertyBindingRule, diagnostic);
+                    ReportDiagnostic(ref context, ref literalSpan, stringText, exactPositions, PropertyBindingRule, diagnostic);
                 }
 
                 // are there duplicate property names?
@@ -182,7 +172,7 @@ namespace SerilogAnalyzer
                 {
                     if (!property.IsPositional && !usedNames.Add(property.PropertyName))
                     {
-                        ReportDiagnostic(ref context, ref literalSpan, stringOffset, exactPositions, UniquePropertyNameRule, new MessageTemplateDiagnostic(property.StartIndex, property.Length, property.PropertyName));
+                        ReportDiagnostic(ref context, ref literalSpan, stringText, exactPositions, UniquePropertyNameRule, new MessageTemplateDiagnostic(property.StartIndex, property.Length, property.PropertyName));
                     }
                 }
             }
@@ -211,7 +201,7 @@ namespace SerilogAnalyzer
             }
         }
 
-        private static void ReportDiagnostic(ref SyntaxNodeAnalysisContext context, ref TextSpan literalSpan, int stringOffset, bool exactPositions, DiagnosticDescriptor rule, MessageTemplateDiagnostic diagnostic)
+        private static void ReportDiagnostic(ref SyntaxNodeAnalysisContext context, ref TextSpan literalSpan, string stringText, bool exactPositions, DiagnosticDescriptor rule, MessageTemplateDiagnostic diagnostic)
         {
             TextSpan textSpan;
             if (diagnostic.MustBeRemapped)
@@ -222,7 +212,7 @@ namespace SerilogAnalyzer
                 }
                 else
                 {
-                    textSpan = new TextSpan(diagnostic.StartIndex + literalSpan.Start + stringOffset, diagnostic.Length);
+                    textSpan = new TextSpan(literalSpan.Start + GetPositionInLiteral(stringText, diagnostic.StartIndex), diagnostic.Length);
                 }
             }
             else
@@ -231,6 +221,79 @@ namespace SerilogAnalyzer
             }
             var sourceLocation = Location.Create(context.Node.SyntaxTree, textSpan);
             context.ReportDiagnostic(Diagnostic.Create(rule, sourceLocation, diagnostic.Diagnostic));
+        }
+
+        /// <summary>
+        /// Remaps a string position into the position in a string literal
+        /// </summary>
+        /// <param name="literal">The literal string as string</param>
+        /// <param name="unescapedPosition">The position in the non literal string</param>
+        /// <returns></returns>
+        public static int GetPositionInLiteral(string literal, int unescapedPosition)
+        {
+            if (literal[0] == '@')
+            {
+                for (int i = 2; i < literal.Length; i++)
+                {
+                    char c = literal[i];
+
+                    if (c == '"' && i + 1 < literal.Length && literal[i + 1] == '"')
+                    {
+                        i++;
+                    }
+                    unescapedPosition--;
+
+                    if (unescapedPosition == -1)
+                    {
+                        return i;
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 1; i < literal.Length; i++)
+                {
+                    char c = literal[i];
+
+                    if (c == '\\' && i + 1 < literal.Length)
+                    {
+                        c = literal[++i];
+                        if (c == 'x' || c == 'u' || c == 'U')
+                        {
+                            int max = Math.Min((c == 'U' ? 8 : 4) + i + 1, literal.Length);
+                            for (i++; i < max; i++)
+                            {
+                                c = literal[i];
+                                if (!IsHexDigit(c))
+                                {
+                                    break;
+                                }
+                            }
+                            i--;
+                        }
+                    }
+                    unescapedPosition--;
+
+                    if (unescapedPosition == -1)
+                    {
+                        return i;
+                    }
+                }
+            }
+
+            return unescapedPosition;
+        }
+
+        /// <summary>
+        /// Returns true if the Unicode character is a hexadecimal digit.
+        /// </summary>
+        /// <param name="c">The Unicode character.</param>
+        /// <returns>true if the character is a hexadecimal digit 0-9, A-F, a-f.</returns>
+        internal static bool IsHexDigit(char c)
+        {
+            return (c >= '0' && c <= '9') ||
+                   (c >= 'A' && c <= 'F') ||
+                   (c >= 'a' && c <= 'f');
         }
 
         private static bool IsException(ITypeSymbol exceptionSymbol, ITypeSymbol type)
