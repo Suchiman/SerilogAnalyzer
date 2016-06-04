@@ -74,7 +74,7 @@ namespace SerilogAnalyzer.Test
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 22, 49)
+                    new DiagnosticResultLocation("Test0.cs", 22, 49, 2)
                 }
             };
             var expected001 = new DiagnosticResult
@@ -84,7 +84,7 @@ namespace SerilogAnalyzer.Test
                 Severity = DiagnosticSeverity.Warning,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 22, 49)
+                    new DiagnosticResultLocation("Test0.cs", 22, 49, 2)
                 }
             };
 
@@ -158,7 +158,7 @@ namespace SerilogAnalyzer.Test
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 22, 49)
+                    new DiagnosticResultLocation("Test0.cs", 22, 49, 14)
                 }
             };
             var expected001 = new DiagnosticResult
@@ -168,7 +168,7 @@ namespace SerilogAnalyzer.Test
                 Severity = DiagnosticSeverity.Warning,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 22, 49)
+                    new DiagnosticResultLocation("Test0.cs", 22, 49, 14)
                 }
             };
 
@@ -244,7 +244,7 @@ namespace SerilogAnalyzer.Test
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 7, 39)
+                    new DiagnosticResultLocation("Test0.cs", 7, 39, 1)
                 }
             };
 
@@ -263,7 +263,7 @@ namespace SerilogAnalyzer.Test
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 7, 39)
+                    new DiagnosticResultLocation("Test0.cs", 7, 39, 1)
                 }
             };
 
@@ -282,7 +282,7 @@ namespace SerilogAnalyzer.Test
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 7, 39)
+                    new DiagnosticResultLocation("Test0.cs", 7, 39, 1)
                 }
             };
 
@@ -301,7 +301,7 @@ namespace SerilogAnalyzer.Test
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 7, 41)
+                    new DiagnosticResultLocation("Test0.cs", 7, 41, 1)
                 }
             };
 
@@ -320,7 +320,7 @@ namespace SerilogAnalyzer.Test
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 7, 38)
+                    new DiagnosticResultLocation("Test0.cs", 7, 38, 1)
                 }
             };
 
@@ -339,7 +339,7 @@ namespace SerilogAnalyzer.Test
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 7, 39)
+                    new DiagnosticResultLocation("Test0.cs", 7, 39, 1)
                 }
             };
 
@@ -358,7 +358,7 @@ namespace SerilogAnalyzer.Test
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 7, 40)
+                    new DiagnosticResultLocation("Test0.cs", 7, 40, 1)
                 }
             };
 
@@ -377,7 +377,7 @@ namespace SerilogAnalyzer.Test
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 7, 33)
+                    new DiagnosticResultLocation("Test0.cs", 7, 33, 18)
                 }
             };
 
@@ -396,7 +396,7 @@ namespace SerilogAnalyzer.Test
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 7, 33)
+                    new DiagnosticResultLocation("Test0.cs", 7, 33, 2)
                 }
             };
 
@@ -415,7 +415,7 @@ namespace SerilogAnalyzer.Test
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 7, 34)
+                    new DiagnosticResultLocation("Test0.cs", 7, 34, 1)
                 }
             };
 
@@ -434,7 +434,7 @@ namespace SerilogAnalyzer.Test
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 7, 33)
+                    new DiagnosticResultLocation("Test0.cs", 7, 33, 3)
                 }
             };
 
@@ -453,7 +453,7 @@ namespace SerilogAnalyzer.Test
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 7, 35)
+                    new DiagnosticResultLocation("Test0.cs", 7, 35, 1)
                 }
             };
 
@@ -506,7 +506,7 @@ class Program
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 7, 73)
+                    new DiagnosticResultLocation("Test0.cs", 7, 73, 16)
                 }
             };
             VerifyCSharpDiagnostic(src, expected);
@@ -524,7 +524,7 @@ class Program
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 7, 47)
+                    new DiagnosticResultLocation("Test0.cs", 7, 47, 9)
                 }
             };
             VerifyCSharpDiagnostic(src, expected);
@@ -542,7 +542,7 @@ class Program
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 7, 27)
+                    new DiagnosticResultLocation("Test0.cs", 7, 27, 3)
                 }
             };
             VerifyCSharpDiagnostic(src, expected);
@@ -560,7 +560,7 @@ class Program
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 7, 40)
+                    new DiagnosticResultLocation("Test0.cs", 7, 40, 8)
                 }
             };
             VerifyCSharpDiagnostic(src, expected);
@@ -578,7 +578,7 @@ class Program
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 7, 30)
+                    new DiagnosticResultLocation("Test0.cs", 7, 30, 8)
                 }
             };
             VerifyCSharpDiagnostic(src, expected);
@@ -596,7 +596,7 @@ class Program
                 Severity = DiagnosticSeverity.Error,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 7, 27)
+                    new DiagnosticResultLocation("Test0.cs", 7, 27, 3)
                 }
             };
             VerifyCSharpDiagnostic(src, expected);
@@ -626,7 +626,7 @@ class Program
                 Severity = DiagnosticSeverity.Warning,
                 Locations = new[]
                 {
-                    new DiagnosticResultLocation("Test0.cs", 9, 23)
+                    new DiagnosticResultLocation("Test0.cs", 9, 23, 12)
                 }
             };
             VerifyCSharpDiagnostic(src, expected);

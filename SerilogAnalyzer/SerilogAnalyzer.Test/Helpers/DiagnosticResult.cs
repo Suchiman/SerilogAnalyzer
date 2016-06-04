@@ -22,7 +22,7 @@ namespace TestHelper
     /// </summary>
     public struct DiagnosticResultLocation
     {
-        public DiagnosticResultLocation(string path, int line, int column)
+        public DiagnosticResultLocation(string path, int line, int column, int length = -1)
         {
             if (line < -1)
             {
@@ -37,11 +37,13 @@ namespace TestHelper
             this.Path = path;
             this.Line = line;
             this.Column = column;
+            this.Length = length;
         }
 
         public string Path { get; }
         public int Line { get; }
         public int Column { get; }
+        public int Length { get; }
     }
 
     /// <summary>

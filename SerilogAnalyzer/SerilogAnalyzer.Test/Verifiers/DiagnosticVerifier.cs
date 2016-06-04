@@ -222,6 +222,17 @@ namespace TestHelper
                             expected.Column, actualLinePosition.Character + 1, FormatDiagnostics(analyzer, diagnostic)));
                 }
             }
+
+            if (expected.Length != -1)
+            {
+                int actualLength = actual.SourceSpan.End - actual.SourceSpan.Start;
+                if (expected.Length != actualLength)
+                {
+                    Assert.IsTrue(false,
+                        string.Format("Expected diagnostic to be \"{0}\" characters long but was actually \"{1}\"\r\n\r\nDiagnostic:\r\n    {2}\r\n",
+                            expected.Length, actualLength, FormatDiagnostics(analyzer, diagnostic)));
+                }
+            }
         }
         #endregion
 
