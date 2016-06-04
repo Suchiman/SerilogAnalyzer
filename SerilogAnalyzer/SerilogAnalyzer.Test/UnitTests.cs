@@ -661,6 +661,33 @@ class Program
         }
 
         [TestMethod]
+        public void TestDiagnosticLengthWithEscapes()
+        {
+            string src = @"
+    using Serilog;
+
+    class TypeName
+    {
+        public static void Test()
+        {
+            Log.Information(@""Hello {Name to """"the"""" World"");
+        }
+    }";
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog002",
+                Message = String.Format("Error while parsing MessageTemplate: {0}", "Encountered end of messageTemplate while parsing property"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 8, 37, 22)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
+        [TestMethod]
         public void TestExactMappingInVerbatimLiteralWithEscapes()
         {
             string testStr = "@\"text \"\"text\"\" text X text\"";

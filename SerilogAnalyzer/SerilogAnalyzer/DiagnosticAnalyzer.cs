@@ -212,7 +212,9 @@ namespace SerilogAnalyzer
                 }
                 else
                 {
-                    textSpan = new TextSpan(literalSpan.Start + GetPositionInLiteral(stringText, diagnostic.StartIndex), diagnostic.Length);
+                    int remappedStart = GetPositionInLiteral(stringText, diagnostic.StartIndex);
+                    int remappedEnd = GetPositionInLiteral(stringText, diagnostic.StartIndex + diagnostic.Length);
+                    textSpan = new TextSpan(literalSpan.Start + remappedStart, remappedEnd - remappedStart);
                 }
             }
             else
