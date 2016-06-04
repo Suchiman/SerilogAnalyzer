@@ -535,7 +535,7 @@ class Program
         {
             string src = GetTemplateTestSource("{1}");
 
-            var expected = new DiagnosticResult
+            var expected1 = new DiagnosticResult
             {
                 Id = "Serilog003",
                 Message = String.Format("Error while binding properties: {0}", "There is no argument that corresponds to the positional property 1"),
@@ -545,7 +545,17 @@ class Program
                     new DiagnosticResultLocation("Test0.cs", 7, 27, 3)
                 }
             };
-            VerifyCSharpDiagnostic(src, expected);
+            var expected2 = new DiagnosticResult
+            {
+                Id = "Serilog003",
+                Message = String.Format("Error while binding properties: {0}", "There is no positional property that corresponds to this argument"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 33, 8)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected1, expected2);
         }
 
         [TestMethod]
@@ -561,6 +571,24 @@ class Program
                 Locations = new[]
                 {
                     new DiagnosticResultLocation("Test0.cs", 7, 40, 8)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
+        [TestMethod]
+        public void TestMoreArgumentsThanPositionalProperties2()
+        {
+            string src = GetTemplateTestSource("{1}", "Mr.", "Tester");
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog003",
+                Message = String.Format("Error while binding properties: {0}", "There is no positional property that corresponds to this argument"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 33, 5)
                 }
             };
             VerifyCSharpDiagnostic(src, expected);

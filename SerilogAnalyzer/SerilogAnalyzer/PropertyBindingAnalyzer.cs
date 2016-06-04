@@ -74,7 +74,7 @@ namespace SerilogAnalyzer
 
         static void AnalyzePositionalProperties(List<MessageTemplateDiagnostic> diagnostics, List<PropertyToken> positionalProperties, List<SourceArgument> arguments)
         {
-            int biggestIndexUsed = -1;
+            var mapped = new List<KeyValuePair<int, PropertyToken>>();
             foreach (var property in positionalProperties)
             {
                 int position;
@@ -90,7 +90,7 @@ namespace SerilogAnalyzer
                         diagnostics.Add(new MessageTemplateDiagnostic(property.StartIndex, property.Length, "There is no argument that corresponds to the positional property " + position.ToString()));
                     }
 
-                    biggestIndexUsed = Math.Max(biggestIndexUsed, position);
+                    mapped.Add(new KeyValuePair<int, PropertyToken>(position, property));
                 }
                 else
                 {
@@ -98,9 +98,22 @@ namespace SerilogAnalyzer
                 }
             }
 
-            for (var i = biggestIndexUsed + 1; i < arguments.Count; ++i)
+            for (var i = 0; i < arguments.Count; ++i)
             {
-                diagnostics.Add(new MessageTemplateDiagnostic(arguments[i].StartIndex, arguments[i].Length, "There is no positional property that corresponds to this argument", false));
+                bool indexMatched = false;
+                for (int m = 0; m < mapped.Count; m++)
+                {
+                    if (mapped[m].Key == i)
+                    {
+                        indexMatched = true;
+                        break;
+                    }
+                }
+
+                if (!indexMatched)
+                {
+                    diagnostics.Add(new MessageTemplateDiagnostic(arguments[i].StartIndex, arguments[i].Length, "There is no positional property that corresponds to this argument", false));
+                }
             }
         }
 
