@@ -6,14 +6,13 @@
     <title>SerilogAnalyzer</title>
     <authors>Robin</authors>
     <owners>Robin</owners>
-    <licenseUrl>http://LICENSE_URL_HERE_OR_DELETE_THIS_LINE</licenseUrl>
-    <projectUrl>http://PROJECT_URL_HERE_OR_DELETE_THIS_LINE</projectUrl>
-    <iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl>
+    <licenseUrl>https://github.com/Suchiman/SerilogAnalyzer/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/Suchiman/SerilogAnalyzer</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/Suchiman/SerilogAnalyzer/master/SerilogAnalyzer/SerilogAnalyzer.Vsix/analyzer-200px.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>SerilogAnalyzer</description>
-    <releaseNotes>Summary of changes made in this release of the package.</releaseNotes>
-    <copyright>Copyright</copyright>
-    <tags>SerilogAnalyzer, analyzers</tags>
+    <description>Roslyn-based analysis for code using the Serilog logging library. Checks for common mistakes and usage problems.</description>
+    <copyright>Copyright 2016 Robin Sue</copyright>
+    <tags>Serilog, analyzers</tags>
     <frameworkAssemblies>
       <frameworkAssembly assemblyName="System" targetFramework="" />
     </frameworkAssemblies>
