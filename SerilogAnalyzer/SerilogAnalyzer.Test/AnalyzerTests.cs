@@ -25,7 +25,7 @@ using TestHelper;
 namespace SerilogAnalyzer.Test
 {
     [TestClass]
-    public class UnitTest : CodeFixVerifier
+    public class AnalyzerTests : CodeFixVerifier
     {
         [TestMethod]
         public void TestNoCode()
