@@ -12,14 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CodeActions;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Formatting;
+using Microsoft.CodeAnalysis.Simplification;
+using Microsoft.CodeAnalysis.Text;
 using Serilog;
 
 namespace TestHelper
@@ -112,6 +116,32 @@ namespace TestHelper
         }
 
         #endregion
+
+        /// <summary>
+        /// Apply the inputted CodeAction to the inputted document.
+        /// </summary>
+        /// <param name="document">The Document to apply the action on</param>
+        /// <param name="codeAction">A CodeAction that will be applied to the Document.</param>
+        /// <returns>A Document with the changes from the CodeAction</returns>
+        protected static Document ApplyCodeAction(Document document, CodeAction codeAction)
+        {
+            var operations = codeAction.GetOperationsAsync(CancellationToken.None).Result;
+            var solution = operations.OfType<ApplyChangesOperation>().Single().ChangedSolution;
+            return solution.GetDocument(document.Id);
+        }
+
+        /// <summary>
+        /// Given a document, turn it into a string based on the syntax root
+        /// </summary>
+        /// <param name="document">The Document to be converted to a string</param>
+        /// <returns>A string containing the syntax of the Document after formatting</returns>
+        protected static string GetStringFromDocument(Document document)
+        {
+            var simplifiedDoc = Simplifier.ReduceAsync(document, Simplifier.Annotation).Result;
+            var root = simplifiedDoc.GetSyntaxRootAsync().Result;
+            root = Formatter.Format(root, Formatter.Annotation, simplifiedDoc.Project.Solution.Workspace);
+            return root.GetText().ToString();
+        }
 
         #region Set up compilation and documents
         /// <summary>
