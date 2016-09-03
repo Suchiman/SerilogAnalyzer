@@ -101,7 +101,7 @@ namespace SerilogAnalyzer
             var stringText = default(string);
             foreach (var argument in invocation.ArgumentList.Arguments)
             {
-                var paramter = DetermineParameter(argument, context.SemanticModel, true, context.CancellationToken);
+                var paramter = RoslynHelper.DetermineParameter(argument, context.SemanticModel, true, context.CancellationToken);
                 if (paramter.Name == messageTemplateName)
                 {
                     string messageTemplate;
@@ -308,70 +308,6 @@ namespace SerilogAnalyzer
                 }
             }
             return false;
-        }
-
-        /// <summary>
-        /// Returns the parameter to which this argument is passed. If <paramref name="allowParams"/>
-        /// is true, the last parameter will be returned if it is params parameter and the index of
-        /// the specified argument is greater than the number of parameters.
-        /// </summary>
-        /// <remarks>Lifted from http://source.roslyn.io/#Microsoft.CodeAnalysis.CSharp.Workspaces/Extensions/ArgumentSyntaxExtensions.cs,af94352fb5da7056 </remarks>
-        public static IParameterSymbol DetermineParameter(ArgumentSyntax argument, SemanticModel semanticModel, bool allowParams = false, CancellationToken cancellationToken = default(CancellationToken))
-        {
-            var argumentList = argument.Parent as BaseArgumentListSyntax;
-            if (argumentList == null)
-            {
-                return null;
-            }
-
-            var invocableExpression = argumentList.Parent as ExpressionSyntax;
-            if (invocableExpression == null)
-            {
-                return null;
-            }
-
-            var symbol = semanticModel.GetSymbolInfo(invocableExpression, cancellationToken).Symbol;
-            if (symbol == null)
-            {
-                return null;
-            }
-
-            var parameters = (symbol as IMethodSymbol)?.Parameters ?? (symbol as IPropertySymbol)?.Parameters ?? ImmutableArray.Create<IParameterSymbol>();
-
-            // Handle named argument
-            if (argument.NameColon != null && !argument.NameColon.IsMissing)
-            {
-                var name = argument.NameColon.Name.Identifier.ValueText;
-                return parameters.FirstOrDefault(p => p.Name == name);
-            }
-
-            // Handle positional argument
-            var index = argumentList.Arguments.IndexOf(argument);
-            if (index < 0)
-            {
-                return null;
-            }
-
-            if (index < parameters.Length)
-            {
-                return parameters[index];
-            }
-
-            if (allowParams)
-            {
-                var lastParameter = parameters.LastOrDefault();
-                if (lastParameter == null)
-                {
-                    return null;
-                }
-
-                if (lastParameter.IsParams)
-                {
-                    return lastParameter;
-                }
-            }
-
-            return null;
         }
     }
 }
