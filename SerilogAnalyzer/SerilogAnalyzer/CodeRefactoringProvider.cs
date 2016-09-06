@@ -46,13 +46,17 @@ namespace SerilogAnalyzer
             }
 
             LoggerConfiguration configuration = GetLoggerConfigurationFromSyntax(context, semanticModel, configurationProperties);
-            if (configuration.Enrich.Count == 0 && configuration.EnrichWithProperty.Count == 0 && configuration.MinimumLevel == null && configuration.WriteTo.Count == 0)
+            if (configuration.Enrich.Count == 0 && configuration.EnrichWithProperty.Count == 0 && configuration.MinimumLevel == null && configuration.MinimumLevelOverrides.Count == 0 && configuration.WriteTo.Count == 0)
             {
                 return;
             }
 
-            var action = CodeAction.Create("Show <appSettings> config", c => InsertConfigurationComment(context.Document, firstProperty, root, configuration, GetAppSettingsConfiguration, c));
-            context.RegisterRefactoring(action);
+            if (configuration.Enrich.Count > 0 || configuration.EnrichWithProperty.Count > 0 || configuration.MinimumLevel != null || configuration.WriteTo.Count > 0)
+            {
+                context.RegisterRefactoring(CodeAction.Create("Show <appSettings> config", c => InsertConfigurationComment(context.Document, firstProperty, root, configuration, GetAppSettingsConfiguration, c)));
+            }
+
+            context.RegisterRefactoring(CodeAction.Create("Show appsettings.json config", c => InsertConfigurationComment(context.Document, firstProperty, root, configuration, GetAppSettingsJsonConfiguration, c)));
         }
 
         private static LoggerConfiguration GetLoggerConfigurationFromSyntax(CodeRefactoringContext context, SemanticModel semanticModel, List<MemberAccessExpressionSyntax> configurationProperties)
@@ -82,6 +86,43 @@ namespace SerilogAnalyzer
                         // Roslyn returns enum constant values as integers, convert it back to the enum member name
                         var enumMember = parameter.Type.GetMembers().OfType<IFieldSymbol>().FirstOrDefault(x => Convert.ToInt64(x.ConstantValue) == Convert.ToInt64(constValue.Value));
                         value = enumMember.Name;
+                    }
+                    else if (logLevel == "Override")
+                    {
+                        var arguments = (invokedMethod?.Parent as InvocationExpressionSyntax)?.ArgumentList?.Arguments ?? default(SeparatedSyntaxList<ArgumentSyntax>);
+
+                        string key = null;
+                        string level = null;
+                        foreach (var argument in arguments)
+                        {
+                            var parameter = RoslynHelper.DetermineParameter(argument, semanticModel, false, context.CancellationToken);
+                            if (parameter.Name == "source")
+                            {
+                                var constValue = semanticModel.GetConstantValue(argument.Expression, context.CancellationToken);
+                                if (!constValue.HasValue)
+                                {
+                                    continue;
+                                }
+                                key = constValue.Value.ToString();
+                            }
+                            else if (parameter.Name == "minimumLevel")
+                            {
+                                var constValue = semanticModel.GetConstantValue(argument.Expression, context.CancellationToken);
+                                if (!constValue.HasValue)
+                                {
+                                    continue;
+                                }
+
+                                var enumMember = parameter.Type.GetMembers().OfType<IFieldSymbol>().FirstOrDefault(x => Convert.ToInt64(x.ConstantValue) == Convert.ToInt64(constValue.Value));
+                                level = enumMember.Name;
+                            }
+                        }
+
+                        if (key != null && level != null)
+                        {
+                            configuration.MinimumLevelOverrides[key] = level;
+                        }
+                        continue;
                     }
                     else if (LogLevels.Contains(logLevel))
                     {
@@ -153,7 +194,7 @@ namespace SerilogAnalyzer
                 AssemblyName = semanticModel.GetSymbolInfo(invokedMethod).Symbol.ContainingAssembly.Name,
                 MethodName = invokedMethod.Name.ToString()
             };
-            
+
             var arguments = (invokedMethod?.Parent as InvocationExpressionSyntax)?.ArgumentList?.Arguments ?? default(SeparatedSyntaxList<ArgumentSyntax>);
             foreach (var argument in arguments)
             {
@@ -261,6 +302,157 @@ namespace SerilogAnalyzer
             else
             {
                 configEntries.Add(new XElement("add", new XAttribute("key", key)));
+            }
+        }
+
+        private static string GetAppSettingsJsonConfiguration(LoggerConfiguration configuration)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("/*");
+            sb.AppendLine(@"""Serilog"": {");
+
+            bool needsComma = false;
+
+            // technically it's not correct to abuse roslyn to escape the string literals for us but csharp strings look very much like js string literals so...
+            string usings = String.Join(", ", configuration.Enrich.Concat(configuration.WriteTo).Select(x => x.AssemblyName).Distinct().Select(x => SyntaxFactory.Literal(x).ToString()));
+            if (!String.IsNullOrEmpty(usings))
+            {
+                sb.AppendFormat(@"  ""Using"": [{0}]", usings);
+                needsComma = true;
+            }
+
+            if (configuration.MinimumLevel != null || configuration.MinimumLevelOverrides.Any())
+            {
+                FinishPreviousLine(sb, ref needsComma);
+                if (!configuration.MinimumLevelOverrides.Any())
+                {
+                    sb.AppendFormat(@"  ""MinimumLevel"": {0}", SyntaxFactory.Literal(configuration.MinimumLevel).ToString());
+                }
+                else
+                {
+                    sb.AppendLine(@"  ""MinimumLevel"": {");
+
+                    if (configuration.MinimumLevel != null)
+                    {
+                        sb.AppendFormat(@"    ""Default"": {0},", SyntaxFactory.Literal(configuration.MinimumLevel).ToString());
+                        sb.AppendLine();
+                    }
+
+                    sb.AppendLine(@"    ""Override"": {");
+                    int remaining = configuration.MinimumLevelOverrides.Count;
+                    foreach (var levelOverride in configuration.MinimumLevelOverrides)
+                    {
+                        sb.AppendFormat("      {0}: {1}", SyntaxFactory.Literal(levelOverride.Key).ToString(), SyntaxFactory.Literal(levelOverride.Value).ToString());
+
+                        if (--remaining > 0)
+                        {
+                            sb.AppendLine(",");
+                        }
+                        else
+                        {
+                            sb.AppendLine();
+                        }
+                    }
+                    sb.AppendLine(@"    }");
+
+                    sb.Append(@"  }");
+                }
+                needsComma = true;
+            }
+
+            if (configuration.WriteTo.Any())
+            {
+                FinishPreviousLine(sb, ref needsComma);
+                WriteMethodCalls(configuration.WriteTo, sb, "WriteTo");
+
+                needsComma = true;
+            }
+
+            if (configuration.Enrich.Any())
+            {
+                FinishPreviousLine(sb, ref needsComma);
+                WriteMethodCalls(configuration.Enrich, sb, "Enrich");
+
+                needsComma = true;
+            }
+
+            if (configuration.EnrichWithProperty.Any())
+            {
+                FinishPreviousLine(sb, ref needsComma);
+                sb.AppendLine(@"  ""Properties"": {");
+
+                int remaining = configuration.EnrichWithProperty.Count;
+                foreach (var property in configuration.EnrichWithProperty)
+                {
+                    sb.AppendFormat("    {0}: {1}", SyntaxFactory.Literal(property.Key).ToString(), SyntaxFactory.Literal(property.Value).ToString());
+
+                    if (--remaining > 0)
+                    {
+                        sb.AppendLine(",");
+                    }
+                    else
+                    {
+                        sb.AppendLine();
+                    }
+                }
+                sb.Append(@"  }");
+                needsComma = true;
+            }
+
+            sb.AppendLine();
+            sb.AppendLine(@"}");
+            sb.AppendLine("*/");
+            return sb.ToString();
+        }
+
+        private static void WriteMethodCalls(List<ExtensibleMethod> methods, StringBuilder sb, string methodKind)
+        {
+            sb.AppendFormat(@"  ""{0}"": [", methodKind);
+
+            if (methods.All(x => !x.Arguments.Any()))
+            {
+                sb.Append(String.Join(", ", methods.Select(x => SyntaxFactory.Literal(x.MethodName).ToString())));
+                sb.Append("]");
+            }
+            else
+            {
+                sb.AppendLine();
+                bool writeToNeedsComma = false;
+                foreach (var writeTo in methods)
+                {
+                    FinishPreviousLine(sb, ref writeToNeedsComma);
+
+                    sb.AppendFormat(@"    {{ ""Name"": {0}", SyntaxFactory.Literal(writeTo.MethodName).ToString());
+                    if (writeTo.Arguments.Any())
+                    {
+                        sb.Append(@", ""Args"": { ");
+
+                        int remaining = writeTo.Arguments.Count;
+                        foreach (var argument in writeTo.Arguments)
+                        {
+                            sb.AppendFormat("{0}: {1}", SyntaxFactory.Literal(argument.Key).ToString(), SyntaxFactory.Literal(argument.Value).ToString());
+                            if (--remaining > 0)
+                            {
+                                sb.Append(", ");
+                            }
+                        }
+                        sb.Append(" }");
+                    }
+                    sb.Append(" }");
+
+                    writeToNeedsComma = true;
+                }
+                sb.AppendLine();
+                sb.Append(@"  ]");
+            }
+        }
+
+        private static void FinishPreviousLine(StringBuilder sb, ref bool needsComma)
+        {
+            if (needsComma)
+            {
+                sb.AppendLine(",");
+                needsComma = false;
             }
         }
     }

@@ -54,10 +54,10 @@ namespace TestHelper
         /// </summary>
         /// <param name="oldSource">A class in the form of a string with [| |] selection markings before the CodeRefactoring was applied to it</param>
         /// <param name="newSource">A class in the form of a string after the CodeRefactoring was applied to it</param>
-        /// <param name="codeRefactoringIndex">Index determining which CodeRefactoring to apply if there are multiple</param>
-        protected void VerifyCSharpRefactoring(string oldSource, string newSource, int? codeRefactoringIndex = null)
+        /// <param name="codeRefactoringTitle">Titel determining which CodeRefactoring to apply if there are multiple</param>
+        protected void VerifyCSharpRefactoring(string oldSource, string newSource, string codeRefactoringTitle = null)
         {
-            VerifyRefactoring(LanguageNames.CSharp, GetCSharpCodeRefactoringProvider(), oldSource, newSource, codeRefactoringIndex);
+            VerifyRefactoring(LanguageNames.CSharp, GetCSharpCodeRefactoringProvider(), oldSource, newSource, codeRefactoringTitle);
         }
 
         /// <summary>
@@ -65,10 +65,10 @@ namespace TestHelper
         /// </summary>
         /// <param name="oldSource">A class in the form of a string with [| |] selection markings before the CodeRefactoring was applied to it</param>
         /// <param name="newSource">A class in the form of a string after the CodeRefactoring was applied to it</param>
-        /// <param name="codeRefactoringIndex">Index determining which CodeRefactoring to apply if there are multiple</param>
-        protected void VerifyBasicRefactoring(string oldSource, string newSource, int? codeRefactoringIndex = null)
+        /// <param name="codeRefactoringTitle">Titel determining which CodeRefactoring to apply if there are multiple</param>
+        protected void VerifyBasicRefactoring(string oldSource, string newSource, string codeRefactoringTitle = null)
         {
-            VerifyRefactoring(LanguageNames.VisualBasic, GetBasicCodeRefactoringProvider(), oldSource, newSource, codeRefactoringIndex);
+            VerifyRefactoring(LanguageNames.VisualBasic, GetBasicCodeRefactoringProvider(), oldSource, newSource, codeRefactoringTitle);
         }
 
         /// <summary>
@@ -80,8 +80,8 @@ namespace TestHelper
         /// <param name="codeRefactoringProvider">The code refactoring to be applied to the code</param>
         /// <param name="oldSource">A class in the form of a string with [| |] selection markings before the CodeRefactoring was applied to it</param>
         /// <param name="newSource">A class in the form of a string after the CodeRefactoring was applied to it</param>
-        /// <param name="codeRefactoringIndex">Index determining which CodeRefactoring to apply if there are multiple</param>
-        private void VerifyRefactoring(string language, CodeRefactoringProvider codeRefactoringProvider, string oldSource, string newSource, int? codeRefactoringIndex)
+        /// <param name="codeRefactoringTitle">Titel determining which CodeRefactoring to apply if there are multiple</param>
+        private void VerifyRefactoring(string language, CodeRefactoringProvider codeRefactoringProvider, string oldSource, string newSource, string codeRefactoringTitle)
         {
             TextSpan span;
             if (!TryGetCodeAndSpanFromMarkup(oldSource, out oldSource, out span))
@@ -97,13 +97,18 @@ namespace TestHelper
 
             if (actions.Any())
             {
-                if (codeRefactoringIndex != null)
+                if (codeRefactoringTitle != null)
                 {
-                    document = ApplyCodeAction(document, actions.ElementAt((int)codeRefactoringIndex));
-                    return;
+                    CodeAction codeAction = actions.FirstOrDefault(x => x.Title == codeRefactoringTitle);
+                    if (codeAction != null)
+                    {
+                        document = ApplyCodeAction(document, codeAction);
+                    }
                 }
-
-                document = ApplyCodeAction(document, actions.ElementAt(0));
+                else
+                {
+                    document = ApplyCodeAction(document, actions.First());
+                }
             }
 
             //after applying all of the code actions, compare the resulting string to the inputted one

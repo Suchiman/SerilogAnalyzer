@@ -57,7 +57,7 @@ class TypeName
             .CreateLogger();
     }
 }";
-            VerifyCSharpRefactoring(test, fixtest);
+            VerifyCSharpRefactoring(test, fixtest, "Show <appSettings> config");
         }
 
         [TestMethod]
@@ -91,7 +91,7 @@ class TypeName
             .CreateLogger();
     }
 }";
-            VerifyCSharpRefactoring(test, fixtest);
+            VerifyCSharpRefactoring(test, fixtest, "Show <appSettings> config");
         }
 
         [TestMethod]
@@ -125,7 +125,7 @@ class TypeName
             .CreateLogger();
     }
 }";
-            VerifyCSharpRefactoring(test, fixtest);
+            VerifyCSharpRefactoring(test, fixtest, "Show <appSettings> config");
         }
 
         [TestMethod]
@@ -160,7 +160,7 @@ class TypeName
             .CreateLogger();
     }
 }";
-            VerifyCSharpRefactoring(test, fixtest);
+            VerifyCSharpRefactoring(test, fixtest, "Show <appSettings> config");
         }
 
         [TestMethod]
@@ -202,7 +202,179 @@ class TypeName
             .CreateLogger();
     }
 }";
-            VerifyCSharpRefactoring(test, fixtest);
+            VerifyCSharpRefactoring(test, fixtest, "Show <appSettings> config");
+        }
+
+        [TestMethod]
+        public void TestComplexJsonSample()
+        {
+            var test = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .Enrich.WithProperty(""AppName"", ""test"")
+            .Enrich.FromLogContext()
+            .MinimumLevel.Is(Serilog.Events.LogEventLevel.Debug)
+            .WriteTo.LiterateConsole(outputTemplate: ""test"", restrictedToMinimumLevel: (Serilog.Events.LogEventLevel)2)
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        /*
+        ""Serilog"": {
+          ""Using"": [""Serilog"", ""Serilog.Sinks.Literate""],
+          ""MinimumLevel"": ""Debug"",
+          ""WriteTo"": [
+            { ""Name"": ""LiterateConsole"", ""Args"": { ""outputTemplate"": ""test"", ""restrictedToMinimumLevel"": ""Information"" } }
+          ],
+          ""Enrich"": [""FromLogContext""],
+          ""Properties"": {
+            ""AppName"": ""test""
+          }
+        }
+        */
+        ILogger test = new LoggerConfiguration()
+            .Enrich.WithProperty(""AppName"", ""test"")
+            .Enrich.FromLogContext()
+            .MinimumLevel.Is(Serilog.Events.LogEventLevel.Debug)
+            .WriteTo.LiterateConsole(outputTemplate: ""test"", restrictedToMinimumLevel: (Serilog.Events.LogEventLevel)2)
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
+        }
+
+        [TestMethod]
+        public void TestJsonWithOverrides()
+        {
+            var test = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .MinimumLevel.Is(Serilog.Events.LogEventLevel.Debug)
+            .MinimumLevel.Override(""Microsoft"", Serilog.Events.LogEventLevel.Warning)
+            .MinimumLevel.Override(""System"", Serilog.Events.LogEventLevel.Fatal)
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        /*
+        ""Serilog"": {
+          ""MinimumLevel"": {
+            ""Default"": ""Debug"",
+            ""Override"": {
+              ""System"": ""Fatal"",
+              ""Microsoft"": ""Warning""
+            }
+          }
+        }
+        */
+        ILogger test = new LoggerConfiguration()
+            .MinimumLevel.Is(Serilog.Events.LogEventLevel.Debug)
+            .MinimumLevel.Override(""Microsoft"", Serilog.Events.LogEventLevel.Warning)
+            .MinimumLevel.Override(""System"", Serilog.Events.LogEventLevel.Fatal)
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
+        }
+
+        [TestMethod]
+        public void TestJsonWithOverridesAndNoDefault()
+        {
+            var test = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .MinimumLevel.Override(""Microsoft"", Serilog.Events.LogEventLevel.Warning)
+            .MinimumLevel.Override(""System"", Serilog.Events.LogEventLevel.Fatal)
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        /*
+        ""Serilog"": {
+          ""MinimumLevel"": {
+            ""Override"": {
+              ""System"": ""Fatal"",
+              ""Microsoft"": ""Warning""
+            }
+          }
+        }
+        */
+        ILogger test = new LoggerConfiguration()
+            .MinimumLevel.Override(""Microsoft"", Serilog.Events.LogEventLevel.Warning)
+            .MinimumLevel.Override(""System"", Serilog.Events.LogEventLevel.Fatal)
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
+        }
+
+        [TestMethod]
+        public void TestXmlWithOverridesAndNoDefault()
+        {
+            var test = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .MinimumLevel.Override(""Microsoft"", Serilog.Events.LogEventLevel.Warning)
+            .MinimumLevel.Override(""System"", Serilog.Events.LogEventLevel.Fatal)
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = new LoggerConfiguration()
+            .MinimumLevel.Override(""Microsoft"", Serilog.Events.LogEventLevel.Warning)
+            .MinimumLevel.Override(""System"", Serilog.Events.LogEventLevel.Fatal)
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show <appSettings> config");
         }
     }
 }
