@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="SerilogAnalyzer..811c872b-87a2-4144-a04f-c097d50929d2" Version="0.3" Language="en-US" Publisher="Robin"/>
+    <Identity Id="SerilogAnalyzer..811c872b-87a2-4144-a04f-c097d50929d2" Version="0.4" Language="en-US" Publisher="Robin"/>
     <DisplayName>SerilogAnalyzer</DisplayName>
     <Description xml:space="preserve">Roslyn-based analysis for code using the Serilog logging library. Checks for common mistakes and usage problems.</Description>
     <MoreInfo>https://github.com/Suchiman/SerilogAnalyzer</MoreInfo>
