@@ -376,5 +376,80 @@ class TypeName
 }";
             VerifyCSharpRefactoring(test, fixtest, "Show <appSettings> config");
         }
+
+        [TestMethod]
+        public void TestNullableNullXml()
+        {
+            var test = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .WriteTo.RollingFile(""logfile.txt"" retainedFileCountLimit: null)
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        /*
+        <add key=""serilog:write-to:RollingFile.pathFormat"" value=""logfile.txt"" />
+        <add key=""serilog:write-to:RollingFile.retainedFileCountLimit"" />
+        <add key=""serilog:using"" value=""Serilog.Sinks.RollingFile"" />
+        */
+        ILogger test = new LoggerConfiguration()
+            .WriteTo.RollingFile(""logfile.txt"" retainedFileCountLimit: null)
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show <appSettings> config");
+        }
+
+        [TestMethod]
+        public void TestNullableNullJson()
+        {
+            var test = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .WriteTo.RollingFile(""logfile.txt"" retainedFileCountLimit: null)
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        /*
+        ""Serilog"": {
+          ""Using"": [""Serilog.Sinks.RollingFile""],
+          ""WriteTo"": [
+            { ""Name"": ""RollingFile"", ""Args"": { ""pathFormat"": ""logfile.txt"", ""retainedFileCountLimit"": null } }
+          ]
+        }
+        */
+        ILogger test = new LoggerConfiguration()
+            .WriteTo.RollingFile(""logfile.txt"" retainedFileCountLimit: null)
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
+        }
     }
 }

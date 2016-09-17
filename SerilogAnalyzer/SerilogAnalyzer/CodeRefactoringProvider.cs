@@ -103,7 +103,7 @@ namespace SerilogAnalyzer
                                 {
                                     continue;
                                 }
-                                key = constValue.Value.ToString();
+                                key = constValue.Value?.ToString();
                             }
                             else if (parameter.Name == "minimumLevel")
                             {
@@ -153,7 +153,7 @@ namespace SerilogAnalyzer
                                 {
                                     continue;
                                 }
-                                key = constValue.Value.ToString();
+                                key = constValue.Value?.ToString();
                             }
                             else if (parameter.Name == "value")
                             {
@@ -162,7 +162,7 @@ namespace SerilogAnalyzer
                                 {
                                     continue;
                                 }
-                                value = constValue.Value.ToString();
+                                value = constValue.Value?.ToString();
                             }
                         }
 
@@ -214,7 +214,7 @@ namespace SerilogAnalyzer
                 }
                 else
                 {
-                    value = constValue.Value.ToString();
+                    value = constValue.Value?.ToString();
                 }
 
                 method.Arguments[parameter.Name] = value;
@@ -430,7 +430,15 @@ namespace SerilogAnalyzer
                         int remaining = writeTo.Arguments.Count;
                         foreach (var argument in writeTo.Arguments)
                         {
-                            sb.AppendFormat("{0}: {1}", SyntaxFactory.Literal(argument.Key).ToString(), SyntaxFactory.Literal(argument.Value).ToString());
+                            sb.AppendFormat("{0}: ", SyntaxFactory.Literal(argument.Key).ToString());
+                            if (argument.Value == null)
+                            {
+                                sb.Append("null");
+                            }
+                            else
+                            {
+                                sb.Append(SyntaxFactory.Literal(argument.Value).ToString());
+                            }
                             if (--remaining > 0)
                             {
                                 sb.Append(", ");
