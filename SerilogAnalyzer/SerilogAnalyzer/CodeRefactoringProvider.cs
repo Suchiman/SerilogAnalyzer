@@ -66,6 +66,9 @@ namespace SerilogAnalyzer
             {
                 var invokedMethod = property.Ancestors().FirstOrDefault() as MemberAccessExpressionSyntax;
 
+                if (String.IsNullOrEmpty(invokedMethod?.Name?.ToString()))
+                    continue;
+
                 string configAction = property.Name.ToString();
                 if (configAction == "MinimumLevel")
                 {
@@ -75,16 +78,33 @@ namespace SerilogAnalyzer
                     {
                         // Ask roslyn what's the constant argument value passed to this method
                         var argument = (invokedMethod?.Parent as InvocationExpressionSyntax)?.ArgumentList?.Arguments.FirstOrDefault();
+                        if (argument == null)
+                            continue;
+
                         var parameter = RoslynHelper.DetermineParameter(argument, semanticModel, false, context.CancellationToken);
+                        if (parameter == null)
+                            continue;
+
                         var accessExpression = argument?.Expression as MemberAccessExpressionSyntax;
+                        if (accessExpression == null)
+                            continue;
+
                         var constValue = semanticModel.GetConstantValue(accessExpression, context.CancellationToken);
                         if (!constValue.HasValue)
+                            continue;
+
+                        long enumIntegralValue;
+                        try
+                        {
+                            enumIntegralValue = Convert.ToInt64(constValue.Value);
+                        }
+                        catch
                         {
                             continue;
                         }
 
                         // Roslyn returns enum constant values as integers, convert it back to the enum member name
-                        var enumMember = parameter.Type.GetMembers().OfType<IFieldSymbol>().FirstOrDefault(x => Convert.ToInt64(x.ConstantValue) == Convert.ToInt64(constValue.Value));
+                        var enumMember = parameter.Type.GetMembers().OfType<IFieldSymbol>().FirstOrDefault(x => Convert.ToInt64(x.ConstantValue) == enumIntegralValue);
                         value = enumMember.Name;
                     }
                     else if (logLevel == "Override")
@@ -96,22 +116,22 @@ namespace SerilogAnalyzer
                         foreach (var argument in arguments)
                         {
                             var parameter = RoslynHelper.DetermineParameter(argument, semanticModel, false, context.CancellationToken);
+                            if (parameter == null)
+                                continue;
+
                             if (parameter.Name == "source")
                             {
                                 var constValue = semanticModel.GetConstantValue(argument.Expression, context.CancellationToken);
                                 if (!constValue.HasValue)
-                                {
                                     continue;
-                                }
+
                                 key = constValue.Value?.ToString();
                             }
                             else if (parameter.Name == "minimumLevel")
                             {
                                 var constValue = semanticModel.GetConstantValue(argument.Expression, context.CancellationToken);
                                 if (!constValue.HasValue)
-                                {
                                     continue;
-                                }
 
                                 var enumMember = parameter.Type.GetMembers().OfType<IFieldSymbol>().FirstOrDefault(x => Convert.ToInt64(x.ConstantValue) == Convert.ToInt64(constValue.Value));
                                 level = enumMember.Name;
@@ -146,22 +166,23 @@ namespace SerilogAnalyzer
                         foreach (var argument in arguments)
                         {
                             var parameter = RoslynHelper.DetermineParameter(argument, semanticModel, false, context.CancellationToken);
+                            if (parameter == null)
+                                continue;
+
                             if (parameter.Name == "name")
                             {
                                 var constValue = semanticModel.GetConstantValue(argument.Expression, context.CancellationToken);
                                 if (!constValue.HasValue)
-                                {
                                     continue;
-                                }
+
                                 key = constValue.Value?.ToString();
                             }
                             else if (parameter.Name == "value")
                             {
                                 var constValue = semanticModel.GetConstantValue(argument.Expression, context.CancellationToken);
                                 if (!constValue.HasValue)
-                                {
                                     continue;
-                                }
+
                                 value = constValue.Value?.ToString();
                             }
                         }
@@ -174,13 +195,19 @@ namespace SerilogAnalyzer
                     else
                     {
                         var method = GetExtensibleMethod(semanticModel, invokedMethod, context.CancellationToken);
-                        configuration.Enrich.Add(method);
+                        if (method != null)
+                        {
+                            configuration.Enrich.Add(method);
+                        }
                     }
                 }
                 else if (configAction == "WriteTo")
                 {
                     var method = GetExtensibleMethod(semanticModel, invokedMethod, context.CancellationToken);
-                    configuration.WriteTo.Add(method);
+                    if (method != null)
+                    {
+                        configuration.WriteTo.Add(method);
+                    }
                 }
             }
 
@@ -191,20 +218,23 @@ namespace SerilogAnalyzer
         {
             var method = new ExtensibleMethod
             {
-                AssemblyName = semanticModel.GetSymbolInfo(invokedMethod).Symbol.ContainingAssembly.Name,
+                AssemblyName = semanticModel.GetSymbolInfo(invokedMethod).Symbol?.ContainingAssembly?.Name,
                 MethodName = invokedMethod.Name.ToString()
             };
+
+            if (String.IsNullOrEmpty(method.AssemblyName))
+                return null;
 
             var arguments = (invokedMethod?.Parent as InvocationExpressionSyntax)?.ArgumentList?.Arguments ?? default(SeparatedSyntaxList<ArgumentSyntax>);
             foreach (var argument in arguments)
             {
                 var parameter = RoslynHelper.DetermineParameter(argument, semanticModel, false, cancellationToken);
+                if (parameter == null)
+                    continue;
 
                 var constValue = semanticModel.GetConstantValue(argument.Expression, cancellationToken);
                 if (!constValue.HasValue)
-                {
                     continue;
-                }
 
                 string value = null;
                 if (parameter.Type.TypeKind == TypeKind.Enum)

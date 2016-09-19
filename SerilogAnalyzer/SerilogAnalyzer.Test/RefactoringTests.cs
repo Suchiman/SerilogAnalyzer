@@ -451,5 +451,98 @@ class TypeName
 }";
             VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
         }
+
+        [TestMethod]
+        public void TestBadCode()
+        {
+            var test = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .WriteTo.RollingFile(""logfile.txt""
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = new LoggerConfiguration()
+            .WriteTo.RollingFile(""logfile.txt""
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
+        }
+
+        [TestMethod]
+        public void TestBadCode2()
+        {
+            var test = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .WriteTo. (""
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = new LoggerConfiguration()
+            .WriteTo. (""
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
+        }
+
+        [TestMethod]
+        public void TestBadCode3()
+        {
+            var test = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .MinimumLevel.Is (""
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = new LoggerConfiguration()
+            .MinimumLevel.Is (""
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
+        }
     }
 }
