@@ -323,11 +323,17 @@ namespace SerilogAnalyzer
                 ConvertExtensibleMethod(configEntries, writeTo, "serilog:write-to");
             }
 
+            var usedSuffixes = new HashSet<string>();
             foreach (var usedAssembly in configuration.Enrich.Concat(configuration.WriteTo).Select(x => x.AssemblyName).Distinct())
             {
                 if (usedAssembly != "Serilog")
                 {
-                    AddEntry(configEntries, "serilog:using", usedAssembly);
+                    var parts = usedAssembly.Split('.');
+                    var suffix = parts.Last();
+                    if (usedSuffixes.Contains(suffix))
+                        suffix = string.Join("", parts);
+
+                    AddEntry(configEntries, $"serilog:using:{suffix}", usedAssembly);
                 }
             }
 

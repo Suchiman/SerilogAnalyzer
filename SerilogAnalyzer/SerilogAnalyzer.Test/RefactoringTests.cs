@@ -153,7 +153,7 @@ class TypeName
     {
         /*
         <add key=""serilog:write-to:LiterateConsole.restrictedToMinimumLevel"" value=""Verbose"" />
-        <add key=""serilog:using"" value=""Serilog.Sinks.Literate"" />
+        <add key=""serilog:using:Literate"" value=""Serilog.Sinks.Literate"" />
         */
         ILogger test = new LoggerConfiguration()
             .WriteTo.LiterateConsole(Serilog.Events.LogEventLevel.Verbose)
@@ -193,7 +193,7 @@ class TypeName
         <add key=""serilog:enrich:with-property:AppName"" value=""test"" />
         <add key=""serilog:write-to:LiterateConsole.outputTemplate"" value=""test"" />
         <add key=""serilog:write-to:LiterateConsole.restrictedToMinimumLevel"" value=""Information"" />
-        <add key=""serilog:using"" value=""Serilog.Sinks.Literate"" />
+        <add key=""serilog:using:Literate"" value=""Serilog.Sinks.Literate"" />
         */
         ILogger test = new LoggerConfiguration()
             .Enrich.WithProperty(""AppName"", ""test"")
@@ -403,7 +403,7 @@ class TypeName
         /*
         <add key=""serilog:write-to:RollingFile.pathFormat"" value=""logfile.txt"" />
         <add key=""serilog:write-to:RollingFile.retainedFileCountLimit"" />
-        <add key=""serilog:using"" value=""Serilog.Sinks.RollingFile"" />
+        <add key=""serilog:using:RollingFile"" value=""Serilog.Sinks.RollingFile"" />
         */
         ILogger test = new LoggerConfiguration()
             .WriteTo.RollingFile(""logfile.txt"" retainedFileCountLimit: null)
