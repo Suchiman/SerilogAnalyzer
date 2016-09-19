@@ -232,6 +232,23 @@ namespace SerilogAnalyzer
                 if (parameter == null)
                     continue;
 
+                if (parameter.Type?.TypeKind == TypeKind.Interface)
+                {
+                    var objectCreation = argument.Expression as ObjectCreationExpressionSyntax;
+                    // check if there are explicit arguments which are unsupported
+                    if (objectCreation.ArgumentList?.Arguments.Count > 0)
+                        continue;
+
+                    var typeInfo = semanticModel.GetTypeInfo(objectCreation).Type as INamedTypeSymbol;
+                    if (typeInfo == null)
+                        continue;
+
+                    // generate the assembly qualified name for usage with Type.GetType(string)
+                    string name = GetAssemblyQualifiedTypeName(typeInfo);
+                    method.Arguments[parameter.Name] = name;
+                    continue;
+                }
+
                 var constValue = semanticModel.GetConstantValue(argument.Expression, cancellationToken);
                 if (!constValue.HasValue)
                     continue;
@@ -251,6 +268,23 @@ namespace SerilogAnalyzer
             }
 
             return method;
+        }
+
+        private static string GetAssemblyQualifiedTypeName(ITypeSymbol type)
+        {
+            var display = new SymbolDisplayFormat(typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces);
+            string name = type.ToDisplayString(display);
+
+            var namedType = type as INamedTypeSymbol;
+            if (namedType?.TypeArguments.Length > 0)
+            {
+                name += "`" + namedType.Arity;
+                name += "[" + String.Join(", ", namedType.TypeArguments.Select(x => "[" + GetAssemblyQualifiedTypeName(x) + "]")) + "]";
+            }
+
+            name += ", " + type.ContainingAssembly.ToString();
+
+            return name;
         }
 
         private Task<Document> InsertConfigurationComment(Document document, MemberAccessExpressionSyntax firstProperty, SyntaxNode root, LoggerConfiguration configuration, Func<LoggerConfiguration, string> generateConfig, CancellationToken cancellationToken)

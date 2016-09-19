@@ -544,5 +544,62 @@ class TypeName
 }";
             VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
         }
+
+        [TestMethod]
+        public void TestInterface()
+        {
+            var test = @"
+using Serilog;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .WriteTo.LiterateConsole(formatProvider: new Stuff<string>())
+            .CreateLogger()|];
+    }
+}
+
+internal class Stuff<T> : IFormatProvider
+{
+    public object GetFormat(Type formatType)
+    {
+        return null;
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        /*
+        ""Serilog"": {
+          ""Using"": [""Serilog.Sinks.Literate""],
+          ""WriteTo"": [
+            { ""Name"": ""LiterateConsole"", ""Args"": { ""formatProvider"": ""Stuff`1[[System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]], TestProject, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"" } }
+          ]
+        }
+        */
+        ILogger test = new LoggerConfiguration()
+            .WriteTo.LiterateConsole(formatProvider: new Stuff<string>())
+            .CreateLogger();
+    }
+}
+
+internal class Stuff<T> : IFormatProvider
+{
+    public object GetFormat(Type formatType)
+    {
+        return null;
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
+        }
     }
 }
