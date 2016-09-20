@@ -601,5 +601,71 @@ internal class Stuff<T> : IFormatProvider
 }";
             VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
         }
+        
+        [TestMethod]
+        public void TestEnrichWithEnricher()
+        {
+            var test = @"
+using Serilog;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .Enrich.With(null)
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = new LoggerConfiguration()
+            .Enrich.With(null)
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
+        }
+
+        [TestMethod]
+        public void TestEnrichWithGenericEnricher()
+        {
+            var test = @"
+using Serilog;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .Enrich.With<Test>()
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = new LoggerConfiguration()
+            .Enrich.With<Test>()
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
+        }
     }
 }

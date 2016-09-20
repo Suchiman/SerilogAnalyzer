@@ -192,6 +192,11 @@ namespace SerilogAnalyzer
                             configuration.EnrichWithProperty[key] = value;
                         }
                     }
+                    else if (((invokedMethod.Name as GenericNameSyntax)?.Identifier.ToString() ?? invokedMethod.Name.ToString()) == "With")
+                    {
+                        // configuration cannot express Enrich.With(new SomeEnricher()) or Enrich.With<SomeEnricher>()
+                        continue;
+                    }
                     else
                     {
                         var method = GetExtensibleMethod(semanticModel, invokedMethod, context.CancellationToken);
