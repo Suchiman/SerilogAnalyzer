@@ -164,6 +164,41 @@ class TypeName
         }
 
         [TestMethod]
+        public void TestAuditToFile()
+        {
+            var test = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .AuditTo.File(""C:\\Path\\Filename"")
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        /*
+        <add key=""serilog:audit-to:File.path"" value=""C:\Path\Filename"" />
+        <add key=""serilog:using:File"" value=""Serilog.Sinks.File"" />
+        */
+        ILogger test = new LoggerConfiguration()
+            .AuditTo.File(""C:\\Path\\Filename"")
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show <appSettings> config");
+        }
+
+        [TestMethod]
         public void TestComplexSample()
         {
             var test = @"
@@ -220,6 +255,7 @@ class TypeName
             .Enrich.FromLogContext()
             .MinimumLevel.Is(Serilog.Events.LogEventLevel.Debug)
             .WriteTo.LiterateConsole(outputTemplate: ""test"", restrictedToMinimumLevel: (Serilog.Events.LogEventLevel)2)
+            .AuditTo.File(""C:\\Path\\Filename"")
             .CreateLogger()|];
     }
 }";
@@ -233,10 +269,13 @@ class TypeName
     {
         /*
         ""Serilog"": {
-          ""Using"": [""Serilog"", ""Serilog.Sinks.Literate""],
+          ""Using"": [""Serilog"", ""Serilog.Sinks.Literate"", ""Serilog.Sinks.File""],
           ""MinimumLevel"": ""Debug"",
           ""WriteTo"": [
             { ""Name"": ""LiterateConsole"", ""Args"": { ""outputTemplate"": ""test"", ""restrictedToMinimumLevel"": ""Information"" } }
+          ],
+          ""AuditTo"": [
+            { ""Name"": ""File"", ""Args"": { ""path"": ""C:\\Path\\Filename"" } }
           ],
           ""Enrich"": [""FromLogContext""],
           ""Properties"": {
@@ -249,6 +288,7 @@ class TypeName
             .Enrich.FromLogContext()
             .MinimumLevel.Is(Serilog.Events.LogEventLevel.Debug)
             .WriteTo.LiterateConsole(outputTemplate: ""test"", restrictedToMinimumLevel: (Serilog.Events.LogEventLevel)2)
+            .AuditTo.File(""C:\\Path\\Filename"")
             .CreateLogger();
     }
 }";
