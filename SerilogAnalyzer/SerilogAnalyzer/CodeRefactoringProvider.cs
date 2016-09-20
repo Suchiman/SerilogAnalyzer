@@ -330,8 +330,8 @@ namespace SerilogAnalyzer
                 {
                     var parts = usedAssembly.Split('.');
                     var suffix = parts.Last();
-                    if (usedSuffixes.Contains(suffix))
-                        suffix = string.Join("", parts);
+                    if (!usedSuffixes.Add(suffix))
+                        suffix = String.Join("", parts);
 
                     AddEntry(configEntries, $"serilog:using:{suffix}", usedAssembly);
                 }
