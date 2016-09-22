@@ -18,7 +18,7 @@ namespace SerilogAnalyzer
     [ExportCodeRefactoringProvider(LanguageNames.CSharp, Name = nameof(SerilogAnalyzerCodeRefactoringProvider)), Shared]
     public class SerilogAnalyzerCodeRefactoringProvider : CodeRefactoringProvider
     {
-        private static string[] InterestingProperties = { "Destructure", "Enrich", "Filter", "MinimumLevel", "ReadFrom", "WriteTo" };
+        private static string[] InterestingProperties = { "Destructure", "Enrich", "Filter", "MinimumLevel", "ReadFrom", "WriteTo", "AuditTo" };
         private static string[] LogLevels = { "Debug", "Error", "Fatal", "Information", "Verbose", "Warning" };
 
         public sealed override async Task ComputeRefactoringsAsync(CodeRefactoringContext context)
@@ -46,17 +46,19 @@ namespace SerilogAnalyzer
             }
 
             LoggerConfiguration configuration = GetLoggerConfigurationFromSyntax(context, semanticModel, configurationProperties);
-            if (configuration.Enrich.Count == 0 && configuration.EnrichWithProperty.Count == 0 && configuration.MinimumLevel == null && configuration.MinimumLevelOverrides.Count == 0 && configuration.WriteTo.Count == 0)
-            {
-                return;
-            }
 
-            if (configuration.Enrich.Count > 0 || configuration.EnrichWithProperty.Count > 0 || configuration.MinimumLevel != null || configuration.WriteTo.Count > 0)
+            var appSettingsApplicable = configuration.Enrich.Count > 0 || configuration.EnrichWithProperty.Count > 0 ||
+                                        configuration.MinimumLevel != null || configuration.WriteTo.Count > 0 || configuration.AuditTo.Count > 0;
+
+            if (appSettingsApplicable)
             {
                 context.RegisterRefactoring(CodeAction.Create("Show <appSettings> config", c => InsertConfigurationComment(context.Document, firstProperty, root, configuration, GetAppSettingsConfiguration, c)));
             }
 
-            context.RegisterRefactoring(CodeAction.Create("Show appsettings.json config", c => InsertConfigurationComment(context.Document, firstProperty, root, configuration, GetAppSettingsJsonConfiguration, c)));
+            if (appSettingsApplicable || configuration.MinimumLevelOverrides.Count > 0)
+            {
+                context.RegisterRefactoring(CodeAction.Create("Show appsettings.json config", c => InsertConfigurationComment(context.Document, firstProperty, root, configuration, GetAppSettingsJsonConfiguration, c)));
+            }
         }
 
         private static LoggerConfiguration GetLoggerConfigurationFromSyntax(CodeRefactoringContext context, SemanticModel semanticModel, List<MemberAccessExpressionSyntax> configurationProperties)
@@ -214,6 +216,14 @@ namespace SerilogAnalyzer
                         configuration.WriteTo.Add(method);
                     }
                 }
+                else if (configAction == "AuditTo")
+                {
+                    var method = GetExtensibleMethod(semanticModel, invokedMethod, context.CancellationToken);
+                    if (method != null)
+                    {
+                        configuration.AuditTo.Add(method);
+                    }
+                }
             }
 
             return configuration;
@@ -328,8 +338,13 @@ namespace SerilogAnalyzer
                 ConvertExtensibleMethod(configEntries, writeTo, "serilog:write-to");
             }
 
+            foreach (var auditTo in configuration.AuditTo)
+            {
+                ConvertExtensibleMethod(configEntries, auditTo, "serilog:audit-to");
+            }
+
             var usedSuffixes = new HashSet<string>();
-            foreach (var usedAssembly in configuration.Enrich.Concat(configuration.WriteTo).Select(x => x.AssemblyName).Distinct())
+            foreach (var usedAssembly in configuration.Enrich.Concat(configuration.WriteTo).Concat(configuration.AuditTo).Select(x => x.AssemblyName).Distinct())
             {
                 if (usedAssembly != "Serilog")
                 {
@@ -389,7 +404,7 @@ namespace SerilogAnalyzer
             bool needsComma = false;
 
             // technically it's not correct to abuse roslyn to escape the string literals for us but csharp strings look very much like js string literals so...
-            string usings = String.Join(", ", configuration.Enrich.Concat(configuration.WriteTo).Select(x => x.AssemblyName).Distinct().Select(x => SyntaxFactory.Literal(x).ToString()));
+            string usings = String.Join(", ", configuration.Enrich.Concat(configuration.WriteTo).Concat(configuration.AuditTo).Select(x => x.AssemblyName).Distinct().Select(x => SyntaxFactory.Literal(x).ToString()));
             if (!String.IsNullOrEmpty(usings))
             {
                 sb.AppendFormat(@"  ""Using"": [{0}]", usings);
@@ -439,6 +454,14 @@ namespace SerilogAnalyzer
             {
                 FinishPreviousLine(sb, ref needsComma);
                 WriteMethodCalls(configuration.WriteTo, sb, "WriteTo");
+
+                needsComma = true;
+            }
+
+            if (configuration.AuditTo.Any())
+            {
+                FinishPreviousLine(sb, ref needsComma);
+                WriteMethodCalls(configuration.AuditTo, sb, "AuditTo");
 
                 needsComma = true;
             }

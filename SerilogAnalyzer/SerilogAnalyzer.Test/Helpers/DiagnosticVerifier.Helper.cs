@@ -40,6 +40,7 @@ namespace TestHelper
         private static readonly MetadataReference CodeAnalysisReference = MetadataReference.CreateFromFile(typeof(Compilation).Assembly.Location);
         private static readonly MetadataReference SerilogReference = MetadataReference.CreateFromFile(typeof(ILogger).Assembly.Location);
         private static readonly MetadataReference SerilogLiterateReference = MetadataReference.CreateFromFile(typeof(LoggerConfigurationLiterateExtensions).Assembly.Location);
+        private static readonly MetadataReference SerilogFileReference = MetadataReference.CreateFromFile(typeof(FileLoggerConfigurationExtensions).Assembly.Location);
         private static readonly MetadataReference SerilogRollingFileReference = MetadataReference.CreateFromFile(typeof(RollingFileLoggerConfigurationExtensions).Assembly.Location);
 
         internal static string DefaultFilePathPrefix = "Test";
@@ -203,6 +204,7 @@ namespace TestHelper
                 .AddMetadataReference(projectId, CodeAnalysisReference)
                 .AddMetadataReference(projectId, SerilogReference)
                 .AddMetadataReference(projectId, SerilogLiterateReference)
+                .AddMetadataReference(projectId, SerilogFileReference)
                 .AddMetadataReference(projectId, SerilogRollingFileReference);
 
             int count = 0;
