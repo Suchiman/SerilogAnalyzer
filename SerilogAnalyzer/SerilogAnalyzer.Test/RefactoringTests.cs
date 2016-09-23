@@ -707,5 +707,109 @@ class TypeName
 }";
             VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
         }
+
+        [TestMethod]
+        public void TestWriteToRollingFileNonConstant()
+        {
+            var test = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .WriteTo.RollingFile(GetPath())
+            .CreateLogger()|];
+    }
+
+    public static string GetPath() => ""test"";
+}";
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        /*
+        Errors:
+        Test0.cs: (9,33)-(9,42): `GetPath()` -> Can't statically determine value of expression
+
+        <add key=""serilog:write-to:RollingFile.pathFormat"" value=""?"" />
+        <add key=""serilog:using:RollingFile"" value=""Serilog.Sinks.RollingFile"" />
+        */
+        ILogger test = new LoggerConfiguration()
+            .WriteTo.RollingFile(GetPath())
+            .CreateLogger();
+    }
+
+    public static string GetPath() => ""test"";
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show <appSettings> config");
+        }
+
+        [TestMethod]
+        public void TestInterfaceNotInlineError()
+        {
+            var test = @"
+using Serilog;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var formatProvider = new Stuff<string>();
+        ILogger test = [|new LoggerConfiguration()
+            .WriteTo.LiterateConsole(formatProvider: formatProvider)
+            .CreateLogger()|];
+    }
+}
+
+internal class Stuff<T> : IFormatProvider
+{
+    public object GetFormat(Type formatType)
+    {
+        return null;
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var formatProvider = new Stuff<string>();
+        /*
+        Errors:
+        Test0.cs: (11,53)-(11,67): `formatProvider` -> I can only infer types from `new T()` expressions
+
+        ""Serilog"": {
+          ""Using"": [""Serilog.Sinks.Literate""],
+          ""WriteTo"": [
+            { ""Name"": ""LiterateConsole"", ""Args"": { ""formatProvider"": ""?"" } }
+          ]
+        }
+        */
+        ILogger test = new LoggerConfiguration()
+            .WriteTo.LiterateConsole(formatProvider: formatProvider)
+            .CreateLogger();
+    }
+}
+
+internal class Stuff<T> : IFormatProvider
+{
+    public object GetFormat(Type formatType)
+    {
+        return null;
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
+        }
     }
 }
