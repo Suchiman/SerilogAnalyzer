@@ -6,7 +6,10 @@ Roslyn-based analysis for code using the [Serilog](http://serilog.net) logging l
 
 ## Installing (Visual Studio)
 
-Download and double-click the latest VSIX from the [releases list](https://github.com/Suchiman/SerilogAnalyzer/releases).
+You can get the SerilogAnalyzer from various sources:
+- Grab the VSIX from the [releases list](https://github.com/Suchiman/SerilogAnalyzer/releases).
+- Install it from [Visual Studio Gallery](https://visualstudiogallery.msdn.microsoft.com/b00c584e-71c0-4e5f-85ab-a3d2347a053c).
+- Install the [NuGet package](https://www.nuget.org/packages/SerilogAnalyzer) into your project.
 
 ## Analyses
 
