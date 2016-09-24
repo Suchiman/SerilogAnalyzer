@@ -418,6 +418,48 @@ class TypeName
         }
 
         [TestMethod]
+        public void TestXmlWithOverrides()
+        {
+            var test = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .MinimumLevel.Override(""Microsoft"", Serilog.Events.LogEventLevel.Warning)
+            .MinimumLevel.Override(""System"", Serilog.Events.LogEventLevel.Fatal)
+            .WriteTo.RollingFile(""logfile.txt"")
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        /*
+        Errors:
+        MinimumLevelOverrides are not supported in <appSettings>
+
+        <add key=""serilog:write-to:RollingFile.pathFormat"" value=""logfile.txt"" />
+        <add key=""serilog:using:RollingFile"" value=""Serilog.Sinks.RollingFile"" />
+        */
+        ILogger test = new LoggerConfiguration()
+            .MinimumLevel.Override(""Microsoft"", Serilog.Events.LogEventLevel.Warning)
+            .MinimumLevel.Override(""System"", Serilog.Events.LogEventLevel.Fatal)
+            .WriteTo.RollingFile(""logfile.txt"")
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show <appSettings> config");
+        }
+
+        [TestMethod]
         public void TestNullableNullXml()
         {
             var test = @"
@@ -641,7 +683,7 @@ internal class Stuff<T> : IFormatProvider
 }";
             VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
         }
-        
+
         [TestMethod]
         public void TestEnrichWithEnricher()
         {

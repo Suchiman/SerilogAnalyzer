@@ -412,14 +412,22 @@ namespace SerilogAnalyzer
 
             var sb = new StringBuilder();
             sb.AppendLine("/*");
-            if (configuration.HasParsingErrors)
+            if (configuration.HasParsingErrors || configuration.MinimumLevelOverrides.Count > 0)
             {
                 sb.AppendLine("Errors:");
                 foreach (var log in configuration.ErrorLog)
                 {
                     sb.AppendLine(log);
                 }
-                sb.AppendLine();
+                if (configuration.ErrorLog.Count > 0)
+                {
+                    sb.AppendLine();
+                }
+                if (configuration.MinimumLevelOverrides.Count > 0)
+                {
+                    sb.AppendLine("MinimumLevelOverrides are not supported in <appSettings>");
+                    sb.AppendLine();
+                }
             }
             foreach (var entry in configEntries)
             {
