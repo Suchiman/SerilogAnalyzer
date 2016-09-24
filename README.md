@@ -114,3 +114,8 @@ Log.Information("Saving {File} to {Directory}", file, directory);
 ```
 
 Each property in a message template must have a unique name.
+
+## Refactors
+Performs static analysis on a fluent LoggerConfiguration call to generate configuration for use with either [`<appSettings>`](https://github.com/serilog/serilog-settings-appsettings) or [`appSettings.json`](https://github.com/serilog/serilog-settings-configuration)
+
+![Serilog Configuration Refactoring](./Github/serilog-configuration-refactoring.gif)
