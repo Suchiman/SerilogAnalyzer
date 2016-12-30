@@ -69,6 +69,12 @@ namespace SerilogAnalyzer
             {
                 var invokedMethod = property.Ancestors().FirstOrDefault() as MemberAccessExpressionSyntax;
 
+                // Just in case we're looking at syntax that has similiar names to LoggerConfiguration (ReadFrom, WriteTo, ...) but isn't related to Serilog
+                if (invokedMethod == null)
+                {
+                    continue;
+                }
+
                 if (String.IsNullOrEmpty(invokedMethod?.Name?.ToString()))
                 {
                     configuration.AddError("Failed to get name of method", invokedMethod);

@@ -853,5 +853,48 @@ internal class Stuff<T> : IFormatProvider
 }";
             VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
         }
+
+        [TestMethod]
+        public void TestSimiliarNames()
+        {
+            var test = @"
+using Serilog;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        int[] testData = { 1, 2, 3 };
+        var test = [|testData.Select(x => { var model = new TypeName(); model.ReadFrom(x); return model; })
+            .ToList()|];
+    }
+
+    public void ReadFrom(int i)
+    {
+
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        int[] testData = { 1, 2, 3 };
+        var test = testData.Select(x => { var model = new TypeName(); model.ReadFrom(x); return model; })
+            .ToList();
+    }
+
+    public void ReadFrom(int i)
+    {
+
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest);
+        }
     }
 }

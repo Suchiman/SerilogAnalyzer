@@ -18,12 +18,12 @@ namespace SerilogAnalyzer
 
         public void AddError(string message, CSharpSyntaxNode syntax)
         {
-            ErrorLog.Add($"{FormatLineSpan(syntax.GetLocation().GetMappedLineSpan())}: `{syntax}` -> {message}");
+            ErrorLog.Add($"{(syntax == null ? "unknown" : FormatLineSpan(syntax.GetLocation().GetMappedLineSpan()))}: `{syntax}` -> {message}");
         }
 
         public void AddNonConstantError(CSharpSyntaxNode syntax)
         {
-            ErrorLog.Add($"{FormatLineSpan(syntax.GetLocation().GetMappedLineSpan())}: `{syntax}` -> Can't statically determine value of expression");
+            ErrorLog.Add($"{(syntax == null ? "unknown" : FormatLineSpan(syntax.GetLocation().GetMappedLineSpan()))}: `{syntax}` -> Can't statically determine value of expression");
         }
 
         private static string FormatLineSpan(FileLinePositionSpan span)
