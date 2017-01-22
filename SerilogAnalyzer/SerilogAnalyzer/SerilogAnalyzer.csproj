@@ -34,7 +34,7 @@
   <ItemGroup>
     <Compile Include="AnalyzingMessageTemplateParser.cs" />
     <Compile Include="CodeFixProvider.cs" />
-    <Compile Include="CodeRefactoringProvider.cs" />
+    <Compile Include="ShowConfigCodeRefactoringProvider.cs" />
     <Compile Include="ConfigurationModel.cs" />
     <Compile Include="DiagnosticAnalyzer.cs" />
     <Compile Include="MessageTemplateToken.cs" />

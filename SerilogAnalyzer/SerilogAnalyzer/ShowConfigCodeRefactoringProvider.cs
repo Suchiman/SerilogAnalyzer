@@ -15,8 +15,8 @@ using Microsoft.CodeAnalysis.Formatting;
 
 namespace SerilogAnalyzer
 {
-    [ExportCodeRefactoringProvider(LanguageNames.CSharp, Name = nameof(SerilogAnalyzerCodeRefactoringProvider)), Shared]
-    public class SerilogAnalyzerCodeRefactoringProvider : CodeRefactoringProvider
+    [ExportCodeRefactoringProvider(LanguageNames.CSharp, Name = nameof(ShowConfigCodeRefactoringProvider)), Shared]
+    public class ShowConfigCodeRefactoringProvider : CodeRefactoringProvider
     {
         private static string[] InterestingProperties = { "Destructure", "Enrich", "Filter", "MinimumLevel", "ReadFrom", "WriteTo", "AuditTo" };
         private static string[] LogLevels = { "Debug", "Error", "Fatal", "Information", "Verbose", "Warning" };

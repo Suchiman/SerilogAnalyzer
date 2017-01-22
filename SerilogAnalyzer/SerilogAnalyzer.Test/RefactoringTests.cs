@@ -23,7 +23,7 @@ namespace SerilogAnalyzer.Test
     {
         protected override CodeRefactoringProvider GetCSharpCodeRefactoringProvider()
         {
-            return new SerilogAnalyzerCodeRefactoringProvider();
+            return new ShowConfigCodeRefactoringProvider();
         }
 
         [TestMethod]
