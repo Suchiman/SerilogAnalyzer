@@ -64,6 +64,47 @@ class TypeName
         }
 
         [TestMethod]
+        public void TestStringFormatWithException()
+        {
+            string src = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var ex = new System.Exception();
+        Log.Verbose(ex, System.String.Format(""Hello {0}"", ""World""));
+    }
+}";
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog004",
+                Message = String.Format("MessageTemplate argument {0} is not constant", @"System.String.Format(""Hello {0}"", ""World"")"),
+                Severity = DiagnosticSeverity.Warning,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 9, 25, 42)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var ex = new System.Exception();
+        Log.Verbose(ex, ""Hello {V}"", ""World"");
+    }
+}";
+            VerifyCSharpFix(src, fixtest);
+        }
+
+        [TestMethod]
         public void TestStringFormatMultipleArguments()
         {
             string src = @"
@@ -179,6 +220,49 @@ class TypeName
     public static void Test()
     {
         Log.Verbose(""Hello {V}"", ""World"");
+    }
+}";
+            VerifyCSharpFix(src, fixtest);
+        }
+
+        [TestMethod]
+        public void TestInterpolatedStringWithException()
+        {
+            string src = @"
+using static System.String;
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var ex = new System.Exception();
+        Log.Verbose(ex, $""Hello {""World""}"");
+    }
+}";
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog004",
+                Message = String.Format("MessageTemplate argument {0} is not constant", @"$""Hello {""World""}"""),
+                Severity = DiagnosticSeverity.Warning,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 10, 25, 18)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+
+            var fixtest = @"
+using static System.String;
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var ex = new System.Exception();
+        Log.Verbose(ex, ""Hello {V}"", ""World"");
     }
 }";
             VerifyCSharpFix(src, fixtest);
@@ -380,6 +464,47 @@ class TypeName
         }
 
         [TestMethod]
+        public void TestStringFormatWithAdditionalArgsAndException()
+        {
+            string src = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var ex = new System.Exception();
+        Log.Verbose(ex, System.String.Format(""Hello {{Name}} to {0}"", ""World""), ""Name"");
+    }
+}";
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog004",
+                Message = String.Format("MessageTemplate argument {0} is not constant", @"System.String.Format(""Hello {{Name}} to {0}"", ""World"")"),
+                Severity = DiagnosticSeverity.Warning,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 9, 25, 54)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var ex = new System.Exception();
+        Log.Verbose(ex, ""Hello {Name} to {V}"", ""Name"", ""World"");
+    }
+}";
+            VerifyCSharpFix(src, fixtest);
+        }
+
+        [TestMethod]
         public void TestInterpolatedStringWithAdditionalArgs()
         {
             string src = @"
@@ -413,6 +538,47 @@ class TypeName
     public static void Test()
     {
         Log.Verbose(""Hello {Name} to {V}"", ""Name"", ""World"");
+    }
+}";
+            VerifyCSharpFix(src, fixtest);
+        }
+
+        [TestMethod]
+        public void TestInterpolatedStringWithAdditionalArgsAndException()
+        {
+            string src = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var ex = new System.Exception();
+        Log.Verbose(ex, $""Hello {{Name}} to {""World""}"", ""Name"");
+    }
+}";
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog004",
+                Message = String.Format("MessageTemplate argument {0} is not constant", @"$""Hello {{Name}} to {""World""}"""),
+                Severity = DiagnosticSeverity.Warning,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 9, 25, 30)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var ex = new System.Exception();
+        Log.Verbose(ex, ""Hello {Name} to {V}"", ""Name"", ""World"");
     }
 }";
             VerifyCSharpFix(src, fixtest);
