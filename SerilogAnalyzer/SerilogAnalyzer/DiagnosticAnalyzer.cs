@@ -155,6 +155,13 @@ namespace SerilogAnalyzer
                     var location = argument.GetLocation().SourceSpan;
                     arguments.Add(new SourceArgument { StartIndex = location.Start, Length = location.Length });
                 }
+                // TODO: also verify that the array type is object[]
+                else if (parameter.IsParams && parameter.Type.Kind == SymbolKind.ArrayType )
+                {
+                    // TODO: add all remaining arguments, instead of only the current one, and shortcircuit the loop
+                    var location = argument.GetLocation().SourceSpan;
+                    arguments.Add(new SourceArgument { StartIndex = location.Start, Length = location.Length });
+                }
             }
 
             // do properties match up?
