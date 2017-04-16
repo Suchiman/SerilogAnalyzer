@@ -101,8 +101,8 @@ namespace SerilogAnalyzer
             var stringText = default(string);
             foreach (var argument in invocation.ArgumentList.Arguments)
             {
-                var paramter = RoslynHelper.DetermineParameter(argument, context.SemanticModel, true, context.CancellationToken);
-                if (paramter.Name == messageTemplateName)
+                var parameter = RoslynHelper.DetermineParameter(argument, context.SemanticModel, true, context.CancellationToken);
+                if (parameter.Name == messageTemplateName)
                 {
                     string messageTemplate;
 
@@ -150,7 +150,7 @@ namespace SerilogAnalyzer
                         }
                     }
                 }
-                else if (paramter.Name.StartsWith("propertyValue", StringComparison.Ordinal))
+                else if (parameter.Name.StartsWith("propertyValue", StringComparison.Ordinal))
                 {
                     var location = argument.GetLocation().SourceSpan;
                     arguments.Add(new SourceArgument { StartIndex = location.Start, Length = location.Length });
