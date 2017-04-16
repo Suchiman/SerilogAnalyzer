@@ -155,8 +155,7 @@ namespace SerilogAnalyzer
                     var location = argument.GetLocation().SourceSpan;
                     arguments.Add(new SourceArgument { StartIndex = location.Start, Length = location.Length });
                 }
-                else if (parameter.IsParams && parameter.Type.Kind == SymbolKind.ArrayType &&
-                    ((IArrayTypeSymbol)parameter.Type).ElementType.MetadataName == "Object")
+                else if (parameter.IsParams && IsObjectArray(parameter))
                 {
                     var location = argument.GetLocation().SourceSpan;
                     arguments.Add(new SourceArgument { StartIndex = location.Start, Length = location.Length });
@@ -205,6 +204,21 @@ namespace SerilogAnalyzer
                     context.ReportDiagnostic(Diagnostic.Create(ExceptionRule, argument.GetLocation(), argument.Expression.ToFullString()));
                 }
             }
+        }
+
+        private static bool IsObjectArray(IParameterSymbol parameter)
+        {
+            var arrayTypeSymbol = parameter.Type as IArrayTypeSymbol;
+            if (arrayTypeSymbol == null)
+            {
+                return false;
+            }
+
+            var symbolDisplayFormat = new SymbolDisplayFormat(
+                typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces);
+
+            string fullyQualifiedName = arrayTypeSymbol.ElementType.ToDisplayString(symbolDisplayFormat);
+            return fullyQualifiedName == "System.Object";
         }
 
         private static void ReportDiagnostic(ref SyntaxNodeAnalysisContext context, ref TextSpan literalSpan, string stringText, bool exactPositions, DiagnosticDescriptor rule, MessageTemplateDiagnostic diagnostic)
