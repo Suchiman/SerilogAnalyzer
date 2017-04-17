@@ -93,13 +93,14 @@ namespace SerilogAnalyzer
             string messageTemplateName = attributeData.ConstructorArguments.First().Value as string;
 
             // check for errors in the MessageTemplate
-            var arguments = new List<SourceArgument>();
+            var arguments = default(List<SourceArgument>);
             var properties = new List<PropertyToken>();
             var hasErrors = false;
             var literalSpan = default(TextSpan);
             var exactPositions = true;
             var stringText = default(string);
-            foreach (var argument in invocation.ArgumentList.Arguments)
+            var invocationArguments = invocation.ArgumentList.Arguments;
+            foreach (var argument in invocationArguments)
             {
                 var parameter = RoslynHelper.DetermineParameter(argument, context.SemanticModel, true, context.CancellationToken);
                 if (parameter.Name == messageTemplateName)
@@ -149,16 +150,15 @@ namespace SerilogAnalyzer
                             ReportDiagnostic(ref context, ref literalSpan, stringText, exactPositions, TemplateRule, diagnostic);
                         }
                     }
-                }
-                else if (parameter.Name.StartsWith("propertyValue", StringComparison.Ordinal))
-                {
-                    var location = argument.GetLocation().SourceSpan;
-                    arguments.Add(new SourceArgument { StartIndex = location.Start, Length = location.Length });
-                }
-                else if (parameter.IsParams && IsObjectArray(parameter))
-                {
-                    var location = argument.GetLocation().SourceSpan;
-                    arguments.Add(new SourceArgument { StartIndex = location.Start, Length = location.Length });
+
+                    var messageTemplateArgumentIndex = invocationArguments.IndexOf(argument);
+                    arguments = invocationArguments.Skip(messageTemplateArgumentIndex + 1).Select(x =>
+                    {
+                        var location = x.GetLocation().SourceSpan;
+                        return new SourceArgument { StartIndex = location.Start, Length = location.Length };
+                    }).ToList();
+
+                    break;
                 }
             }
 
@@ -196,7 +196,7 @@ namespace SerilogAnalyzer
             }
 
             // check wether any of the format arguments is an exception
-            foreach (var argument in invocation.ArgumentList.Arguments)
+            foreach (var argument in invocationArguments)
             {
                 var arginfo = context.SemanticModel.GetTypeInfo(argument.Expression);
                 if (IsException(exception, arginfo.Type))
@@ -204,21 +204,6 @@ namespace SerilogAnalyzer
                     context.ReportDiagnostic(Diagnostic.Create(ExceptionRule, argument.GetLocation(), argument.Expression.ToFullString()));
                 }
             }
-        }
-
-        private static bool IsObjectArray(IParameterSymbol parameter)
-        {
-            var arrayTypeSymbol = parameter.Type as IArrayTypeSymbol;
-            if (arrayTypeSymbol == null)
-            {
-                return false;
-            }
-
-            var symbolDisplayFormat = new SymbolDisplayFormat(
-                typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces);
-
-            string fullyQualifiedName = arrayTypeSymbol.ElementType.ToDisplayString(symbolDisplayFormat);
-            return fullyQualifiedName == "System.Object";
         }
 
         private static void ReportDiagnostic(ref SyntaxNodeAnalysisContext context, ref TextSpan literalSpan, string stringText, bool exactPositions, DiagnosticDescriptor rule, MessageTemplateDiagnostic diagnostic)
