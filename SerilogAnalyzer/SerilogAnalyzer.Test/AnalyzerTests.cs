@@ -810,7 +810,7 @@ class Program
             public static void Test()
             {
                 int id = 1;
-                IMyLogger log;
+                IMyLogger log = null;
                 log.Error(""The id is {Id}"", id);
             }
         }
