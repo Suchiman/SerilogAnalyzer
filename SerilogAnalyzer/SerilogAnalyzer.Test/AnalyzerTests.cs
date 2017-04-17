@@ -783,6 +783,41 @@ class Program
             VerifyCSharpDiagnostic(src, expected);
         }
 
+        [TestMethod]
+        public void TestIssue19()
+        {
+            var test = @"
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
+    using System.Diagnostics;
+    using Serilog.Core;
+
+    namespace ConsoleApplication1
+    {
+        public interface IMyLogger
+        {
+            [MessageTemplateFormatMethod(""messageTemplate"")]
+            void Error(string messageTemplate, params object[] values);
+            [MessageTemplateFormatMethod(""messageTemplate"")]
+            void Error(Exception exception, string messageTemplate, params object[] values);
+        }
+
+        class TypeName
+        {
+            public static void Test()
+            {
+                int id = 1;
+                IMyLogger log = null;
+                log.Error(""The id is {Id}"", id);
+            }
+        }
+    }";
+            VerifyCSharpDiagnostic(test);
+        }
+
         protected override CodeFixProvider GetCSharpCodeFixProvider()
         {
             return new SerilogAnalyzerCodeFixProvider();

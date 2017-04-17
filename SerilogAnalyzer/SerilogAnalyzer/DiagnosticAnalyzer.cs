@@ -93,16 +93,17 @@ namespace SerilogAnalyzer
             string messageTemplateName = attributeData.ConstructorArguments.First().Value as string;
 
             // check for errors in the MessageTemplate
-            var arguments = new List<SourceArgument>();
+            var arguments = default(List<SourceArgument>);
             var properties = new List<PropertyToken>();
             var hasErrors = false;
             var literalSpan = default(TextSpan);
             var exactPositions = true;
             var stringText = default(string);
-            foreach (var argument in invocation.ArgumentList.Arguments)
+            var invocationArguments = invocation.ArgumentList.Arguments;
+            foreach (var argument in invocationArguments)
             {
-                var paramter = RoslynHelper.DetermineParameter(argument, context.SemanticModel, true, context.CancellationToken);
-                if (paramter.Name == messageTemplateName)
+                var parameter = RoslynHelper.DetermineParameter(argument, context.SemanticModel, true, context.CancellationToken);
+                if (parameter.Name == messageTemplateName)
                 {
                     string messageTemplate;
 
@@ -149,11 +150,15 @@ namespace SerilogAnalyzer
                             ReportDiagnostic(ref context, ref literalSpan, stringText, exactPositions, TemplateRule, diagnostic);
                         }
                     }
-                }
-                else if (paramter.Name.StartsWith("propertyValue", StringComparison.Ordinal))
-                {
-                    var location = argument.GetLocation().SourceSpan;
-                    arguments.Add(new SourceArgument { StartIndex = location.Start, Length = location.Length });
+
+                    var messageTemplateArgumentIndex = invocationArguments.IndexOf(argument);
+                    arguments = invocationArguments.Skip(messageTemplateArgumentIndex + 1).Select(x =>
+                    {
+                        var location = x.GetLocation().SourceSpan;
+                        return new SourceArgument { StartIndex = location.Start, Length = location.Length };
+                    }).ToList();
+
+                    break;
                 }
             }
 
@@ -191,7 +196,7 @@ namespace SerilogAnalyzer
             }
 
             // check wether any of the format arguments is an exception
-            foreach (var argument in invocation.ArgumentList.Arguments)
+            foreach (var argument in invocationArguments)
             {
                 var arginfo = context.SemanticModel.GetTypeInfo(argument.Expression);
                 if (IsException(exception, arginfo.Type))
