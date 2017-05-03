@@ -108,8 +108,14 @@ namespace SerilogAnalyzer
                     string messageTemplate;
 
                     // is it a simple string literal?
-                    var literal = argument.Expression as LiteralExpressionSyntax;
-                    if (literal == null)
+                    if (argument.Expression is LiteralExpressionSyntax literal)
+                    {
+                        stringText = literal.Token.Text;
+                        exactPositions = true;
+
+                        messageTemplate = literal.Token.ValueText;
+                    }
+                    else
                     {
                         // can we at least get a computed constant value for it?
                         var constantValue = context.SemanticModel.GetConstantValue(argument.Expression, context.CancellationToken);
@@ -123,28 +129,19 @@ namespace SerilogAnalyzer
                         exactPositions = false;
                         messageTemplate = constantValue.Value as string;
                     }
-                    else
-                    {
-                        stringText = literal.Token.Text;
-                        exactPositions = true;
-
-                        messageTemplate = literal.Token.ValueText;
-                    }
 
                     literalSpan = argument.Expression.GetLocation().SourceSpan;
 
                     var messageTemplateDiagnostics = AnalyzingMessageTemplateParser.Analyze(messageTemplate);
                     foreach (var templateDiagnostic in messageTemplateDiagnostics)
                     {
-                        var property = templateDiagnostic as PropertyToken;
-                        if (property != null)
+                        if (templateDiagnostic is PropertyToken property)
                         {
                             properties.Add(property);
                             continue;
                         }
 
-                        var diagnostic = templateDiagnostic as MessageTemplateDiagnostic;
-                        if (diagnostic != null)
+                        if (templateDiagnostic is MessageTemplateDiagnostic diagnostic)
                         {
                             hasErrors = true;
                             ReportDiagnostic(ref context, ref literalSpan, stringText, exactPositions, TemplateRule, diagnostic);
