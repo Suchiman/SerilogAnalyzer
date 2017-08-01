@@ -116,6 +116,33 @@ namespace SerilogAnalyzer {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Checks that all property names in a MessageTemplates are Pascal Case.
+        /// </summary>
+        internal static string PascalPropertyNameAnalyzerDescription {
+            get {
+                return ResourceManager.GetString("PascalPropertyNameAnalyzerDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Property name &apos;{0}&apos; should be pascal case.
+        /// </summary>
+        internal static string PascalPropertyNameAnalyzerMessageFormat {
+            get {
+                return ResourceManager.GetString("PascalPropertyNameAnalyzerMessageFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Pascal Property name verifier.
+        /// </summary>
+        internal static string PascalPropertyNameAnalyzerTitle {
+            get {
+                return ResourceManager.GetString("PascalPropertyNameAnalyzerTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Checks wether properties and arguments match up.
         /// </summary>
         internal static string PropertyBindingAnalyzerDescription {

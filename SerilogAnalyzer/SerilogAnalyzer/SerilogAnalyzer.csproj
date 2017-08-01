@@ -36,6 +36,7 @@
     <Compile Include="CodeFixProvider.cs" />
     <Compile Include="ConvertToMessageTemplateCodeRefactoringProvider.cs" />
     <Compile Include="Extensions.cs" />
+    <Compile Include="SerilogAnalyzerPascalCaseCodeFixProvider.cs" />
     <Compile Include="ShowConfigCodeRefactoringProvider.cs" />
     <Compile Include="ConfigurationModel.cs" />
     <Compile Include="DiagnosticAnalyzer.cs" />

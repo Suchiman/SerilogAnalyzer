@@ -58,7 +58,13 @@ namespace SerilogAnalyzer
         private static readonly LocalizableString UniquePropertyNameDescription = new LocalizableResourceString(nameof(Resources.UniquePropertyNameAnalyzerDescription), Resources.ResourceManager, typeof(Resources));
         private static DiagnosticDescriptor UniquePropertyNameRule = new DiagnosticDescriptor(UniquePropertyNameDiagnosticId, UniquePropertyNameTitle, UniquePropertyNameMessageFormat, "CodeQuality", DiagnosticSeverity.Error, isEnabledByDefault: true, description: UniquePropertyNameDescription);
 
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get { return ImmutableArray.Create(ExceptionRule, TemplateRule, PropertyBindingRule, ConstantMessageTemplateRule, UniquePropertyNameRule); } }
+        public const string PascalPropertyNameDiagnosticId = "Serilog006";
+        private static readonly LocalizableString PascalPropertyNameTitle = new LocalizableResourceString(nameof(Resources.PascalPropertyNameAnalyzerTitle), Resources.ResourceManager, typeof(Resources));
+        private static readonly LocalizableString PascalPropertyNameMessageFormat = new LocalizableResourceString(nameof(Resources.PascalPropertyNameAnalyzerMessageFormat), Resources.ResourceManager, typeof(Resources));
+        private static readonly LocalizableString PascalPropertyNameDescription = new LocalizableResourceString(nameof(Resources.PascalPropertyNameAnalyzerDescription), Resources.ResourceManager, typeof(Resources));
+        private static DiagnosticDescriptor PascalPropertyNameRule = new DiagnosticDescriptor(PascalPropertyNameDiagnosticId, PascalPropertyNameTitle, PascalPropertyNameMessageFormat, "CodeQuality", DiagnosticSeverity.Warning, isEnabledByDefault: true, description: PascalPropertyNameDescription);
+
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get { return ImmutableArray.Create(ExceptionRule, TemplateRule, PropertyBindingRule, ConstantMessageTemplateRule, UniquePropertyNameRule, PascalPropertyNameRule); } }
 
         public override void Initialize(AnalysisContext context)
         {
@@ -175,6 +181,12 @@ namespace SerilogAnalyzer
                     if (!property.IsPositional && !usedNames.Add(property.PropertyName))
                     {
                         ReportDiagnostic(ref context, ref literalSpan, stringText, exactPositions, UniquePropertyNameRule, new MessageTemplateDiagnostic(property.StartIndex, property.Length, property.PropertyName));
+                    }
+
+                    var firstCharacter = property.PropertyName[0];
+                    if (!Char.IsDigit(firstCharacter) && !Char.IsUpper(firstCharacter))
+                    {
+                        ReportDiagnostic(ref context, ref literalSpan, stringText, exactPositions, PascalPropertyNameRule, new MessageTemplateDiagnostic(property.StartIndex, property.Length, property.PropertyName));
                     }
                 }
             }

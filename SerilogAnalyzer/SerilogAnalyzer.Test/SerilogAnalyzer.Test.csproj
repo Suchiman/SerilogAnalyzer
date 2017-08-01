@@ -119,6 +119,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ConvertMessageTemplateAnalyzerTests.cs" />
+    <Compile Include="PascalCaseAnalyzerTests.cs" />
     <Compile Include="RefactoringTests.cs" />
     <Compile Include="Verifiers\CodeRefactoringVerifier.cs" />
     <Compile Include="Verifiers\CodeFixVerifier.cs" />
