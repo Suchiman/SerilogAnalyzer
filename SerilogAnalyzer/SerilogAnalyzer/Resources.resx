@@ -176,5 +176,17 @@
   <data name="UniquePropertyNameAnalyzerTitle" xml:space="preserve">
     <value>Unique Property name verifier</value>
     <comment>The title of the diagnostic.</comment>
+  </data>  
+  <data name="PascalPropertyNameAnalyzerTitle" xml:space="preserve">
+    <value>Pascal Property name verifier</value>
+    <comment>The title of the diagnostic.</comment>
+  </data>
+  <data name="PascalPropertyNameAnalyzerMessageFormat" xml:space="preserve">
+    <value>Property name '{0}' should be pascal case</value>
+    <comment>The format-able message the diagnostic displays.</comment>
+  </data>
+  <data name="PascalPropertyNameAnalyzerDescription" xml:space="preserve">
+    <value>Checks that all property names in a MessageTemplates are Pascal Case</value>
+    <comment>An optional longer localizable description of the diagnostic.</comment>
   </data>
 </root>

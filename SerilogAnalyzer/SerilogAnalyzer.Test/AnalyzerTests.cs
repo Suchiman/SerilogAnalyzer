@@ -784,6 +784,24 @@ class Program
         }
 
         [TestMethod]
+        public void TestPascalCaseFormattingRule()
+        {
+            string src = GetTemplateTestSource("{tester} chats with himself", "tester1");
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog006",
+                Message = String.Format("Property name '{0}' should be pascal case", "tester"),
+                Severity = DiagnosticSeverity.Warning,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 7, 27)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
+        [TestMethod]
         public void TestIssue19()
         {
             var test = @"
