@@ -65,6 +65,10 @@ namespace SerilogAnalyzer
                 {
                     context.RegisterCodeFix(CodeAction.Create(title, c => ConvertInterpolationToMessageTemplateAsync(context.Document, interpolatedString, logger, c), title), diagnostic);
                 }
+                else if (declaration.Expression.DescendantNodesAndSelf().OfType<LiteralExpressionSyntax>().Any())
+                {
+                    context.RegisterCodeFix(CodeAction.Create(title, c => ConvertStringConcatToMessageTemplateAsync(context.Document, declaration.Expression, logger, c), title), diagnostic);
+                }
             }
         }
 

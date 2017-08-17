@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using TestHelper;
 
 namespace SerilogAnalyzer.Test
@@ -735,6 +735,90 @@ class TypeName
     public static void Test()
     {
         Log.Verbose(""Hello {Name} to {Error}"", null, null);
+    }
+}";
+            VerifyCSharpFix(src, fixtest);
+        }
+
+        [TestMethod]
+        public void TestStringConcat()
+        {
+            string src = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        string name = ""Tester"";
+        Log.Verbose(""Hello "" + name);
+    }
+}";
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog004",
+                Message = String.Format("MessageTemplate argument {0} is not constant", @"""Hello "" + name"),
+                Severity = DiagnosticSeverity.Warning,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 9, 21, 15)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        string name = ""Tester"";
+        Log.Verbose(""Hello {Name}"", name);
+    }
+}";
+            VerifyCSharpFix(src, fixtest);
+        }
+
+        [TestMethod]
+        public void TestStringConcatComplex()
+        {
+            string src = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        bool test = true;
+        string name = ""Tester"";
+        Log.Verbose(""Hello "" + name + "" to the {Place} "" + (test ? "" yes"" + "" no"" : "" no"" + "" yes"") + "" text"", ""party"");
+    }
+}";
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog004",
+                Message = String.Format("MessageTemplate argument {0} is not constant", @"""Hello "" + name + "" to the {Place} "" + (test ? "" yes"" + "" no"" : "" no"" + "" yes"") + "" text"""),
+                Severity = DiagnosticSeverity.Warning,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 10, 21, 89)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        bool test = true;
+        string name = ""Tester"";
+        Log.Verbose(""Hello {Name} to the {Place} {V} text"", name, ""party"", (test ? "" yes"" + "" no"" : "" no"" + "" yes""));
     }
 }";
             VerifyCSharpFix(src, fixtest);

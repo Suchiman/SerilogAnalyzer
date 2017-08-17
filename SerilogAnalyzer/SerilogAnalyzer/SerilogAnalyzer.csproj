@@ -34,6 +34,7 @@
   <ItemGroup>
     <Compile Include="AnalyzingMessageTemplateParser.cs" />
     <Compile Include="CodeFixProvider.cs" />
+    <Compile Include="ConvertToMessageTemplateCodeRefactoringProvider.StringConcat.cs" />
     <Compile Include="ConvertToMessageTemplateCodeRefactoringProvider.StringInterpolation.cs" />
     <Compile Include="ConvertToMessageTemplateCodeRefactoringProvider.StringFormat.cs" />
     <Compile Include="ConvertToMessageTemplateCodeRefactoringProvider.cs" />
