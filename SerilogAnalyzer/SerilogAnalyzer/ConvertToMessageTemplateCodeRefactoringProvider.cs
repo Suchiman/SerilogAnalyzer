@@ -12,6 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CodeActions;
+using Microsoft.CodeAnalysis.CodeFixes;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Formatting;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -20,17 +26,11 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeActions;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Formatting;
 
 namespace SerilogAnalyzer
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ConvertToMessageTemplateCodeFixProvider)), Shared]
-    public class ConvertToMessageTemplateCodeFixProvider : CodeFixProvider
+    public partial class ConvertToMessageTemplateCodeFixProvider : CodeFixProvider
     {
         private const string title = "Convert to MessageTemplate";
         private const string ConversionName = "SerilogAnalyzer-";
@@ -68,20 +68,6 @@ namespace SerilogAnalyzer
             }
         }
 
-        private async Task<Document> ConvertInterpolationToMessageTemplateAsync(Document document, InterpolatedStringExpressionSyntax interpolatedString, InvocationExpressionSyntax logger, CancellationToken cancellationToken)
-        {
-            GetFormatStringAndExpressionsFromInterpolation(interpolatedString, out var format, out var expressions);
-
-            return await InlineFormatAndArgumentsIntoLoggerStatementAsync(document, interpolatedString, logger, format, expressions, cancellationToken);
-        }
-
-        private async Task<Document> ConvertStringFormatToMessageTemplateAsync(Document document, InvocationExpressionSyntax stringFormat, InvocationExpressionSyntax logger, CancellationToken cancellationToken)
-        {
-            GetFormatStringAndExpressionsFromStringFormat(stringFormat, out var format, out var expressions);
-
-            return await InlineFormatAndArgumentsIntoLoggerStatementAsync(document, stringFormat, logger, format, expressions, cancellationToken);
-        }
-
         private static async Task<Document> InlineFormatAndArgumentsIntoLoggerStatementAsync(Document document, ExpressionSyntax originalTemplateExpression, InvocationExpressionSyntax logger, InterpolatedStringExpressionSyntax format, List<ExpressionSyntax> expressions, CancellationToken cancellationToken)
         {
             var loggerArguments = logger.ArgumentList.Arguments;
@@ -107,7 +93,7 @@ namespace SerilogAnalyzer
                         string expressionText = interpolation.Expression.ToString();
                         ExpressionSyntax correspondingArgument = null;
                         string name;
-                        if (expressionText.StartsWith(ConversionName) && Int32.TryParse(expressionText.Substring(ConversionName.Length), out int index))
+                        if (expressionText.StartsWith(ConversionName, StringComparison.Ordinal) && Int32.TryParse(expressionText.Substring(ConversionName.Length), out int index))
                         {
                             correspondingArgument = expressions.ElementAtOrDefault(index);
 
@@ -181,76 +167,6 @@ namespace SerilogAnalyzer
 
             var newLogger = logger.WithArgumentList(SyntaxFactory.ArgumentList(seperatedSyntax)).WithAdditionalAnnotations(Formatter.Annotation);
             return document.WithSyntaxRoot(syntaxRoot.ReplaceNode(logger, newLogger));
-        }
-
-        private static void GetFormatStringAndExpressionsFromInterpolation(InterpolatedStringExpressionSyntax interpolatedString, out InterpolatedStringExpressionSyntax format, out List<ExpressionSyntax> expressions)
-        {
-            var sb = new StringBuilder();
-            var replacements = new List<string>();
-            var interpolations = new List<ExpressionSyntax>();
-            foreach (var child in interpolatedString.Contents)
-            {
-                switch (child)
-                {
-                    case InterpolatedStringTextSyntax text:
-                        sb.Append(text.TextToken.ToString());
-                        break;
-                    case InterpolationSyntax interpolation:
-                        int argumentPosition = interpolations.Count;
-                        interpolations.Add(interpolation.Expression);
-
-                        sb.Append("{");
-                        sb.Append(replacements.Count);
-                        sb.Append("}");
-
-                        replacements.Add($"{{{ConversionName}{argumentPosition}{interpolation.AlignmentClause}{interpolation.FormatClause}}}");
-
-                        break;
-                }
-            }
-
-            format = (InterpolatedStringExpressionSyntax)SyntaxFactory.ParseExpression("$\"" + String.Format(sb.ToString(), replacements.ToArray()) + "\"");
-            expressions = interpolations;
-        }
-
-        private static void GetFormatStringAndExpressionsFromStringFormat(InvocationExpressionSyntax stringFormat, out InterpolatedStringExpressionSyntax format, out List<ExpressionSyntax> expressions)
-        {
-            var arguments = stringFormat.ArgumentList.Arguments;
-            var formatString = ((LiteralExpressionSyntax)arguments[0].Expression).Token.ToString();
-            var interpolatedString = (InterpolatedStringExpressionSyntax)SyntaxFactory.ParseExpression("$" + formatString);
-
-            var sb = new StringBuilder();
-            var replacements = new List<string>();
-            foreach (var child in interpolatedString.Contents)
-            {
-                switch (child)
-                {
-                    case InterpolatedStringTextSyntax text:
-                        sb.Append(text.TextToken.ToString());
-                        break;
-                    case InterpolationSyntax interpolation:
-                        int argumentPosition;
-                        if (interpolation.Expression is LiteralExpressionSyntax literal && literal.IsKind(SyntaxKind.NumericLiteralExpression))
-                        {
-                            argumentPosition = (int)literal.Token.Value;
-                        }
-                        else
-                        {
-                            argumentPosition = -1;
-                        }
-
-                        sb.Append("{");
-                        sb.Append(replacements.Count);
-                        sb.Append("}");
-
-                        replacements.Add($"{{{ConversionName}{argumentPosition}{interpolation.AlignmentClause}{interpolation.FormatClause}}}");
-
-                        break;
-                }
-            }
-
-            format = (InterpolatedStringExpressionSyntax)SyntaxFactory.ParseExpression("$\"" + String.Format(sb.ToString(), replacements.ToArray()) + "\"");
-            expressions = arguments.Skip(1).Select(x => x.Expression).ToList();
         }
     }
 }
