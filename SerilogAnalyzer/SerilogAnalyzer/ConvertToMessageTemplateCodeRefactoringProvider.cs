@@ -77,7 +77,12 @@ namespace SerilogAnalyzer
             var loggerArguments = logger.ArgumentList.Arguments;
             var argumentIndex = loggerArguments.IndexOf(x => x.Expression == originalTemplateExpression);
 
-            var sb = new StringBuilder("\"");
+            var sb = new StringBuilder();
+            if (format.StringStartToken.ValueText.Contains("@"))
+            {
+                sb.Append('@');
+            }
+            sb.Append('"');
 
             var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
             var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
@@ -153,7 +158,7 @@ namespace SerilogAnalyzer
                 }
             }
 
-            sb.Append("\"");
+            sb.Append('"');
             var messageTemplate = SyntaxFactory.Argument(SyntaxFactory.ParseExpression(sb.ToString()));
 
             var seperatedSyntax = loggerArguments.Replace(loggerArguments[argumentIndex], messageTemplate);

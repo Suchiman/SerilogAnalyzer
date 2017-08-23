@@ -56,8 +56,9 @@ namespace SerilogAnalyzer
             }
             FindExpressions(stringConcat);
 
-            var sb = new StringBuilder("$\"");
+            var sb = new StringBuilder();
             var replacements = new List<string>();
+            bool shouldUseVerbatim = false;
             int argumentPosition = 0;
             foreach (var child in concatExpressions)
             {
@@ -65,6 +66,7 @@ namespace SerilogAnalyzer
                 {
                     case LiteralExpressionSyntax literal:
                         sb.Append(literal.Token.ValueText);
+                        shouldUseVerbatim |= literal.Token.Text.StartsWith("@", System.StringComparison.Ordinal) && ContainsQuotesOrLineBreaks(literal.Token.ValueText);
                         break;
                     case ExpressionSyntax exp:
 
@@ -76,10 +78,51 @@ namespace SerilogAnalyzer
                         break;
                 }
             }
-            sb.Append("\"");
 
-            format = (InterpolatedStringExpressionSyntax)SyntaxFactory.ParseExpression(sb.ToString());
+            if (shouldUseVerbatim)
+            {
+                for (int i = 0; i < sb.Length; i++)
+                {
+                    if (IsForbiddenInVerbatimString(sb[i]))
+                    {
+                        shouldUseVerbatim = false;
+                        break;
+                    }
+                }
+            }
+
+            var text = ObjectDisplay.FormatLiteral(sb.ToString(), useQuotes: true, escapeNonPrintable: !shouldUseVerbatim);
+
+            format = (InterpolatedStringExpressionSyntax)SyntaxFactory.ParseExpression("$" + text);
             expressions = concatExpressions.Where(x => !(x is LiteralExpressionSyntax)).ToList();
+        }
+
+        private static bool IsForbiddenInVerbatimString(char c)
+        {
+            switch (c)
+            {
+                case '\a':
+                case '\b':
+                case '\f':
+                case '\v':
+                case '\0':
+                    return true;
+            }
+            
+            return false;
+        }
+
+        private static bool ContainsQuotesOrLineBreaks(string s)
+        {
+            foreach (char c in s)
+            {
+                if (c == '\r' || c == '\n' || c == '"')
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

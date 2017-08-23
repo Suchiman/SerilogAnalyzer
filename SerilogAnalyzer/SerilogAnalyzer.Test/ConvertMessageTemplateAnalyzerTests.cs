@@ -782,6 +782,133 @@ class TypeName
         }
 
         [TestMethod]
+        public void TestStringConcatWithLineBreaks()
+        {
+            string src = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        string name = null;
+        Log.Verbose(""Hello World\nName: '"" + name + ""'\n"");
+    }
+}";
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog004",
+                Message = String.Format("MessageTemplate argument {0} is not constant", @"""Hello World\nName: '"" + name + ""'\n"""),
+                Severity = DiagnosticSeverity.Warning,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 9, 21, 37)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        string name = null;
+        Log.Verbose(""Hello World\nName: '{Name}'\n"", name);
+    }
+}";
+            VerifyCSharpFix(src, fixtest);
+        }
+
+        [TestMethod]
+        public void TestStringConcatWithVerbatim()
+        {
+            string src = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        string name = null;
+        Log.Verbose(@""Hello World
+Name: '"" + name + ""'\r\n"");
+    }
+}";
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog004",
+                Message = String.Format("MessageTemplate argument {0} is not constant", @"@""Hello World
+Name: '"" + name + ""'\r\n"""),
+                Severity = DiagnosticSeverity.Warning,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 9, 21, 40)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        string name = null;
+        Log.Verbose(@""Hello World
+Name: '{Name}'
+"", name);
+    }
+}";
+            VerifyCSharpFix(src, fixtest);
+        }
+
+        [TestMethod]
+        public void TestStringConcatWithVerbatimIgnored()
+        {
+            string src = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        string name = null;
+        Log.Verbose(""Hello World\nName: '"" + name + @""'"");
+    }
+}";
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog004",
+                Message = String.Format("MessageTemplate argument {0} is not constant", @"""Hello World\nName: '"" + name + @""'"""),
+                Severity = DiagnosticSeverity.Warning,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 9, 21, 36)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        string name = null;
+        Log.Verbose(""Hello World\nName: '{Name}'"", name);
+    }
+}";
+            VerifyCSharpFix(src, fixtest);
+        }
+
+        [TestMethod]
         public void TestStringConcatComplex()
         {
             string src = @"
