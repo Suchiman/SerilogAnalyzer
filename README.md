@@ -97,6 +97,7 @@ Log.Error("Order handler failed with {HandlerError}", errorMessage);
 ```
 
 Correct usage is to always pass any variable data as a property to a message template.
+A CodeFix is provided that converts string interpolation (`$"{...}"`), `String.Format(...)` and string concat (`"value: " + value`) to a message template
 
 ### `Serilog005`: Unique Property Name Verifier
 
@@ -117,6 +118,24 @@ Log.Information("Saving {File} to {Directory}", file, directory);
 ```
 
 Each property in a message template must have a unique name.
+
+### `Serilog006`: Pascal Cased Property Verifier
+
+Checks that all property names in a message template are PascalCased.
+
+**Detected incorrect usage:**
+
+```csharp
+Log.Information("Saving {file} to {directory}", file, directory); 
+```
+
+A CodeFix is provided, that applies pascal casing.
+
+**Correct usage:**
+
+```csharp
+Log.Information("Saving {File} to {Directory}", file, directory); 
+```
 
 ## Refactors
 Performs static analysis on a fluent LoggerConfiguration call to generate configuration for use with either [`<appSettings>`](https://github.com/serilog/serilog-settings-appsettings) or [`appSettings.json`](https://github.com/serilog/serilog-settings-configuration)
