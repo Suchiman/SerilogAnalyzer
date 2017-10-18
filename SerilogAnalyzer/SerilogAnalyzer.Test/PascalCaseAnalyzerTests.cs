@@ -75,6 +75,126 @@ class TypeName
         }
 
         [TestMethod]
+        public void TestPascalCaseFixForSnakeCaseString()
+        {
+            string src = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var foo = ""tester"";
+        Log.Verbose(""Hello {tester_name}"", foo));
+    }
+}";
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog006",
+                Message = String.Format("Property name '{0}' should be pascal case", "tester_name"),
+                Severity = DiagnosticSeverity.Warning,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 9, 28, 13)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var foo = ""tester"";
+        Log.Verbose(""Hello {TesterName}"", foo));
+    }
+}";
+            VerifyCSharpFix(src, fixtest);
+        }
+
+        [TestMethod]
+        public void TestPascalCaseFixForStringWithEscapes()
+        {
+            string src = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var foo = ""tester"";
+        Log.Verbose(""Hello \""{tester}\"""", foo));
+    }
+}";
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog006",
+                Message = String.Format("Property name '{0}' should be pascal case", "tester"),
+                Severity = DiagnosticSeverity.Warning,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 9, 30, 9)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var foo = ""tester"";
+        Log.Verbose(""Hello \""{Tester}\"""", foo));
+    }
+}";
+            VerifyCSharpFix(src, fixtest);
+        }
+
+        [TestMethod]
+        public void TestPascalCaseFixForStringWithVerbatimEscapes()
+        {
+            string src = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var foo = ""tester"";
+        Log.Verbose(@""Hello """"{tester}"""""", foo));
+    }
+}";
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog006",
+                Message = String.Format("Property name '{0}' should be pascal case", "tester"),
+                Severity = DiagnosticSeverity.Warning,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 9, 31, 9)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+
+            var fixtest = @"
+using Serilog;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var foo = ""tester"";
+        Log.Verbose(@""Hello """"{Tester}"""""", foo));
+    }
+}";
+            VerifyCSharpFix(src, fixtest);
+        }
+
+        [TestMethod]
         public void TestPascalCaseFixForObject()
         {
             string src = @"

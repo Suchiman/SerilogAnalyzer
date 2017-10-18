@@ -21,7 +21,7 @@ using System;
 using System.Collections.Immutable;
 using System.Composition;
 using System.Linq;
-using System.Text.RegularExpressions;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -58,34 +58,61 @@ namespace SerilogAnalyzer
             var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
             var oldToken = node.GetFirstToken();
 
-            var text = oldToken.ValueText;
-            var matches = Regex.Matches(text, @"(?<!{){[@|$]?[a-z]\w+?}");
-            foreach (Match match in matches)
+            var sb = new StringBuilder();
+            if (oldToken.Text.StartsWith("@", StringComparison.Ordinal))
             {
-                var matchValue = match.Value;
-                var chars = matchValue.ToCharArray();
+                sb.Append('@');
+            }
+            sb.Append('"');
 
-                if (chars[1] == destructuringPrefix || chars[1] == stringificationPrefix)
+            var interpolatedString = (InterpolatedStringExpressionSyntax)SyntaxFactory.ParseExpression("$" + oldToken.ToString());
+            foreach (var child in interpolatedString.Contents)
+            {
+                switch (child)
                 {
-                    chars[2] = Char.ToUpper(chars[2]);
-                    text = text.Replace(matchValue, new string(chars));
-                }
-                else
-                {
-                    chars[1] = Char.ToUpper(chars[1]);
-                    text = text.Replace(matchValue, new string(chars));
+                    case InterpolatedStringTextSyntax text:
+                        sb.Append(text.TextToken.ToString());
+                        break;
+                    case InterpolationSyntax interpolation:
+                        AppendAsPascalCase(sb, interpolation.ToString());
+                        break;
                 }
             }
+            sb.Append('"');
 
-            var newToken = SyntaxFactory.Literal(
-                SyntaxFactory.TriviaList(),
-                "\"" + text + "\"",
-                "\"" + text + "\"",
-                SyntaxFactory.TriviaList());
+            var newToken = SyntaxFactory.ParseToken(sb.ToString());
             root = root.ReplaceToken(oldToken, newToken);
 
             document = document.WithSyntaxRoot(root);
             return document.Project.Solution;
+        }
+
+        private static void AppendAsPascalCase(StringBuilder sb, string input)
+        {
+            bool uppercaseChar = true;
+            bool skipTheRest = false;
+            for (int i = 0; i < input.Length; i++)
+            {
+                char current = input[i];
+                if (i < 2 && current == '{' || current == stringificationPrefix || current == destructuringPrefix)
+                {
+                    sb.Append(current);
+                    continue;
+                }
+                if (skipTheRest || current == ',' || current == ':' || current == '}')
+                {
+                    skipTheRest = true;
+                    sb.Append(current);
+                    continue;
+                }
+                if (current == '_')
+                {
+                    uppercaseChar = true;
+                    continue;
+                }
+                sb.Append(uppercaseChar ? Char.ToUpper(current) : current);
+                uppercaseChar = false;
+            }
         }
     }
 }
