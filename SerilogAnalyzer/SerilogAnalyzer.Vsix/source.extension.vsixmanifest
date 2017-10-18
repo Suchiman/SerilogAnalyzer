@@ -1,12 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="SerilogAnalyzer..811c872b-87a2-4144-a04f-c097d50929d2" Version="0.11" Language="en-US" Publisher="Robin"/>
+        <Identity Id="SerilogAnalyzer..811c872b-87a2-4144-a04f-c097d50929d2" Version="0.12" Language="en-US" Publisher="Robin"/>
         <DisplayName>Serilog Analyzer</DisplayName>
         <Description xml:space="preserve">Roslyn-based analysis for code using the Serilog logging library. Checks for common mistakes and usage problems.</Description>
         <MoreInfo>https://github.com/Suchiman/SerilogAnalyzer</MoreInfo>
         <GettingStartedGuide>https://github.com/Suchiman/SerilogAnalyzer</GettingStartedGuide>
-        <ReleaseNotes>https://github.com/Suchiman/SerilogAnalyzer/releases/tag/0.11</ReleaseNotes>
+        <ReleaseNotes>https://github.com/Suchiman/SerilogAnalyzer/releases/tag/0.12</ReleaseNotes>
         <Icon>analyzer-32px.png</Icon>
         <PreviewImage>analyzer-200px.png</PreviewImage>
         <Tags>Serilog, Refactoring, Free, code, Open Source, C#, analyzer, Quality, refactor, roslyn, fix, improve</Tags>
