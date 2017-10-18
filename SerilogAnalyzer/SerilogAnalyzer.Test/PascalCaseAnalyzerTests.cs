@@ -75,6 +75,56 @@ class TypeName
         }
 
         [TestMethod]
+        public void TestPascalCaseFixForStringWithException()
+        {
+            string src = @"
+using Serilog;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var dwgName = ""tester"";
+        Exception crashAndBurn = null;
+        Log.Fatal(crashAndBurn,
+                                      messageTemplate: ""{DwgFileName} Crashed and burned. {stackTrace}"",
+                                      propertyValue0: dwgName,
+                                      propertyValue1: crashAndBurn.StackTrace);
+    }
+}";
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog006",
+                Message = String.Format("Property name '{0}' should be pascal case", "stackTrace"),
+                Severity = DiagnosticSeverity.Warning,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 12, 91, 12)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+
+            var fixtest = @"
+using Serilog;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var dwgName = ""tester"";
+        Exception crashAndBurn = null;
+        Log.Fatal(crashAndBurn,
+                                      messageTemplate: ""{DwgFileName} Crashed and burned. {StackTrace}"",
+                                      propertyValue0: dwgName,
+                                      propertyValue1: crashAndBurn.StackTrace);
+    }
+}";
+            VerifyCSharpFix(src, fixtest);
+        }
+
+        [TestMethod]
         public void TestPascalCaseFixForSnakeCaseString()
         {
             string src = @"

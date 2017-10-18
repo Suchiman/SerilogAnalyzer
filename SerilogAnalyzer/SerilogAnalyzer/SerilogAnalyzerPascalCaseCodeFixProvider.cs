@@ -48,15 +48,15 @@ namespace SerilogAnalyzer
             context.RegisterCodeFix(
                 CodeAction.Create(
                     title: title,
-                    createChangedSolution: c => this.PascalCaseTheProperties(context.Document, (ArgumentSyntax)declaration, c),
+                    createChangedSolution: c => this.PascalCaseTheProperties(context.Document, declaration.DescendantNodesAndSelf().OfType<LiteralExpressionSyntax>().First(), c),
                     equivalenceKey: title),
                 diagnostic);
         }
 
-        private async Task<Solution> PascalCaseTheProperties(Document document, ArgumentSyntax node, CancellationToken cancellationToken)
+        private async Task<Solution> PascalCaseTheProperties(Document document, LiteralExpressionSyntax node, CancellationToken cancellationToken)
         {
             var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-            var oldToken = node.GetFirstToken();
+            var oldToken = node.Token;
 
             var sb = new StringBuilder();
             if (oldToken.Text.StartsWith("@", StringComparison.Ordinal))
