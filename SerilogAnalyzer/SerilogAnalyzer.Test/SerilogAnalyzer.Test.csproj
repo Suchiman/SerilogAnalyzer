@@ -118,6 +118,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DestructuringHintTests.cs" />
     <Compile Include="ConvertMessageTemplateAnalyzerTests.cs" />
     <Compile Include="PascalCaseAnalyzerTests.cs" />
     <Compile Include="RefactoringTests.cs" />

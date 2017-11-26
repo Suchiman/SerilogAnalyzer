@@ -33,6 +33,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="AnalyzingMessageTemplateParser.cs" />
+    <Compile Include="DestructuringHintCodeFixProvider.cs" />
     <Compile Include="CodeFixProvider.cs" />
     <Compile Include="ConvertToMessageTemplateCodeRefactoringProvider.StringConcat.cs" />
     <Compile Include="ConvertToMessageTemplateCodeRefactoringProvider.StringInterpolation.cs" />
@@ -60,6 +61,7 @@
     <EmbeddedResource Include="Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>

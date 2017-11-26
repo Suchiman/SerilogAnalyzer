@@ -64,7 +64,13 @@ namespace SerilogAnalyzer
         private static readonly LocalizableString PascalPropertyNameDescription = new LocalizableResourceString(nameof(Resources.PascalPropertyNameAnalyzerDescription), Resources.ResourceManager, typeof(Resources));
         private static DiagnosticDescriptor PascalPropertyNameRule = new DiagnosticDescriptor(PascalPropertyNameDiagnosticId, PascalPropertyNameTitle, PascalPropertyNameMessageFormat, "CodeQuality", DiagnosticSeverity.Warning, isEnabledByDefault: true, description: PascalPropertyNameDescription);
 
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get { return ImmutableArray.Create(ExceptionRule, TemplateRule, PropertyBindingRule, ConstantMessageTemplateRule, UniquePropertyNameRule, PascalPropertyNameRule); } }
+        public const string DestructureAnonymousObjectsDiagnosticId = "Serilog007";
+        private static readonly LocalizableString DestructureAnonymousObjectsTitle = new LocalizableResourceString(nameof(Resources.DestructureAnonymousObjectsAnalyzerTitle), Resources.ResourceManager, typeof(Resources));
+        private static readonly LocalizableString DestructureAnonymousObjectsMessageFormat = new LocalizableResourceString(nameof(Resources.DestructureAnonymousObjectsAnalyzerMessageFormat), Resources.ResourceManager, typeof(Resources));
+        private static readonly LocalizableString DestructureAnonymousObjectsDescription = new LocalizableResourceString(nameof(Resources.DestructureAnonymousObjectsAnalyzerDescription), Resources.ResourceManager, typeof(Resources));
+        private static DiagnosticDescriptor DestructureAnonymousObjectsRule = new DiagnosticDescriptor(DestructureAnonymousObjectsDiagnosticId, DestructureAnonymousObjectsTitle, DestructureAnonymousObjectsMessageFormat, "CodeQuality", DiagnosticSeverity.Warning, isEnabledByDefault: true, description: DestructureAnonymousObjectsDescription);
+
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(ExceptionRule, TemplateRule, PropertyBindingRule, ConstantMessageTemplateRule, UniquePropertyNameRule, PascalPropertyNameRule, DestructureAnonymousObjectsRule);
 
         public override void Initialize(AnalysisContext context)
         {
@@ -74,7 +80,7 @@ namespace SerilogAnalyzer
         private static void AnalyzeSymbol(SyntaxNodeAnalysisContext context)
         {
             var invocation = context.Node as InvocationExpressionSyntax;
-            var info = context.SemanticModel.GetSymbolInfo(invocation);
+            var info = context.SemanticModel.GetSymbolInfo(invocation, context.CancellationToken);
             var method = info.Symbol as IMethodSymbol;
             if (method == null)
             {
@@ -158,7 +164,7 @@ namespace SerilogAnalyzer
                     arguments = invocationArguments.Skip(messageTemplateArgumentIndex + 1).Select(x =>
                     {
                         var location = x.GetLocation().SourceSpan;
-                        return new SourceArgument { StartIndex = location.Start, Length = location.Length };
+                        return new SourceArgument { Argument = x, StartIndex = location.Start, Length = location.Length };
                     }).ToList();
 
                     break;
@@ -172,6 +178,24 @@ namespace SerilogAnalyzer
                 foreach (var diagnostic in diagnostics)
                 {
                     ReportDiagnostic(ref context, ref literalSpan, stringText, exactPositions, PropertyBindingRule, diagnostic);
+                }
+
+                // check that all anonymous objects have destructuring hints in the message template
+                if (arguments.Count == properties.Count)
+                {
+                    for (int i = 0; i < arguments.Count; i++)
+                    {
+                        var argument = arguments[i];
+                        var argumentInfo = context.SemanticModel.GetTypeInfo(argument.Argument.Expression, context.CancellationToken);
+                        if (argumentInfo.Type?.IsAnonymousType ?? false)
+                        {
+                            var property = properties[i];
+                            if (!property.RawText.StartsWith("{@", StringComparison.Ordinal))
+                            {
+                                ReportDiagnostic(ref context, ref literalSpan, stringText, exactPositions, DestructureAnonymousObjectsRule, new MessageTemplateDiagnostic(property.StartIndex, property.Length, property.PropertyName));
+                            }
+                        }
+                    }
                 }
 
                 // are there duplicate property names?

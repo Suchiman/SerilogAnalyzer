@@ -176,7 +176,7 @@
   <data name="UniquePropertyNameAnalyzerTitle" xml:space="preserve">
     <value>Unique Property name verifier</value>
     <comment>The title of the diagnostic.</comment>
-  </data>  
+  </data>
   <data name="PascalPropertyNameAnalyzerTitle" xml:space="preserve">
     <value>Pascal Property name verifier</value>
     <comment>The title of the diagnostic.</comment>
@@ -187,6 +187,18 @@
   </data>
   <data name="PascalPropertyNameAnalyzerDescription" xml:space="preserve">
     <value>Checks that all property names in a MessageTemplates are Pascal Case</value>
+    <comment>An optional longer localizable description of the diagnostic.</comment>
+  </data>
+  <data name="DestructureAnonymousObjectsAnalyzerTitle" xml:space="preserve">
+    <value>Anonymous objects use destructuring hint verifier</value>
+    <comment>The title of the diagnostic.</comment>
+  </data>
+  <data name="DestructureAnonymousObjectsAnalyzerMessageFormat" xml:space="preserve">
+    <value>Property '{0}' should use destructuring because the argument is an anonymous object</value>
+    <comment>The format-able message the diagnostic displays.</comment>
+  </data>
+  <data name="DestructureAnonymousObjectsAnalyzerDescription" xml:space="preserve">
+    <value>Checks that properties that are passed anonymous objects use the destructuring hint</value>
     <comment>An optional longer localizable description of the diagnostic.</comment>
   </data>
 </root>

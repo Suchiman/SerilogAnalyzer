@@ -137,6 +137,24 @@ A CodeFix is provided, that applies pascal casing.
 Log.Information("Saving {File} to {Directory}", file, directory); 
 ```
 
+### `Serilog007`: Anonymous objects use destructuring Verifier
+
+Checks that all anonymous objects passed to the logger are destructured.
+
+**Detected incorrect usage:**
+
+```csharp
+Log.Information("Saving {File} to {Directory}", new { Name = name, Size = size }, directory); 
+```
+
+A CodeFix is provided, that applies the destructuring hint.
+
+**Correct usage:**
+
+```csharp
+Log.Information("Saving {@File} to {Directory}", new { Name = name, Size = size }, directory); 
+```
+
 ## Refactors
 Performs static analysis on a fluent LoggerConfiguration call to generate configuration for use with either [`<appSettings>`](https://github.com/serilog/serilog-settings-appsettings) or [`appSettings.json`](https://github.com/serilog/serilog-settings-configuration)
 

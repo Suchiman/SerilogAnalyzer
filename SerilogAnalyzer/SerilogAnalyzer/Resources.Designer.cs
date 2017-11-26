@@ -20,7 +20,7 @@ namespace SerilogAnalyzer {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "15.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Resources {
@@ -85,6 +85,33 @@ namespace SerilogAnalyzer {
         internal static string ConstantMessageTemplateAnalyzerTitle {
             get {
                 return ResourceManager.GetString("ConstantMessageTemplateAnalyzerTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Checks that properties that are passed anonymous objects use the destructuring hint.
+        /// </summary>
+        internal static string DestructureAnonymousObjectsAnalyzerDescription {
+            get {
+                return ResourceManager.GetString("DestructureAnonymousObjectsAnalyzerDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Property &apos;{0}&apos; should use destructuring because the argument is an anonymous object.
+        /// </summary>
+        internal static string DestructureAnonymousObjectsAnalyzerMessageFormat {
+            get {
+                return ResourceManager.GetString("DestructureAnonymousObjectsAnalyzerMessageFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Anonymous objects use destructuring hint verifier.
+        /// </summary>
+        internal static string DestructureAnonymousObjectsAnalyzerTitle {
+            get {
+                return ResourceManager.GetString("DestructureAnonymousObjectsAnalyzerTitle", resourceCulture);
             }
         }
         

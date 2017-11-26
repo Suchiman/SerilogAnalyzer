@@ -12,10 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
 namespace SerilogAnalyzer
 {
     class SourceArgument
     {
+        public ArgumentSyntax Argument { get; set; }
         public int StartIndex { get; set; }
         public int Length { get; set; }
     }
