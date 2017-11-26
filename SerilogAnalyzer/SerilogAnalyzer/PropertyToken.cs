@@ -1,4 +1,4 @@
-﻿// Based on https://github.com/serilog/serilog/blob/023d57c282dcb5ddedee9401c68743a713fa0c8c/src/Serilog/Parsing/PropertyToken.cs
+﻿// Based on https://github.com/serilog/serilog/blob/e205c078b9fd0704e7bd778e2a214049472535df/src/Serilog/Parsing/PropertyToken.cs
 // Copyright 2013-2015 Serilog Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@ namespace SerilogAnalyzer
     /// <summary>
     /// A message template token representing a log event property.
     /// </summary>
-    class PropertyToken : MessageTemplateToken
+    sealed class PropertyToken : MessageTemplateToken
     {
         readonly string _rawText;
         readonly int? _position;
@@ -29,10 +29,8 @@ namespace SerilogAnalyzer
         public PropertyToken(int startIndex, string propertyName, string rawText)
             : base(startIndex, rawText.Length)
         {
-            if (propertyName == null) throw new ArgumentNullException(nameof(propertyName));
-            if (rawText == null) throw new ArgumentNullException(nameof(rawText));
-            PropertyName = propertyName;
-            _rawText = rawText;
+            PropertyName = propertyName ?? throw new ArgumentNullException(nameof(propertyName));
+            _rawText = rawText ?? throw new ArgumentNullException(nameof(rawText));
 
             int position;
             if (int.TryParse(PropertyName, NumberStyles.None, CultureInfo.InvariantCulture, out position) &&
@@ -51,6 +49,8 @@ namespace SerilogAnalyzer
         /// True if the property name is a positional index; otherwise, false.
         /// </summary>
         public bool IsPositional => _position.HasValue;
+
+        internal string RawText => _rawText;
 
         /// <summary>
         /// Try to get the integer value represented by the property name.
