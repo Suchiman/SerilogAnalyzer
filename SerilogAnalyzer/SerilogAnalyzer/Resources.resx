@@ -201,4 +201,16 @@
     <value>Checks that properties that are passed anonymous objects use the destructuring hint</value>
     <comment>An optional longer localizable description of the diagnostic.</comment>
   </data>
+  <data name="UseCorrectContextualLoggerAnalyzerTitle" xml:space="preserve">
+    <value>Contextual loggers use the correct context verifier</value>
+    <comment>The title of the diagnostic.</comment>
+  </data>
+  <data name="UseCorrectContextualLoggerAnalyzerMessageFormat" xml:space="preserve">
+    <value>Logger '{0}' should use {1} instead of {2}</value>
+    <comment>The format-able message the diagnostic displays.</comment>
+  </data>
+  <data name="UseCorrectContextualLoggerAnalyzerDescription" xml:space="preserve">
+    <value>Checks that loggers are initialized with the current class as ForContext</value>
+    <comment>An optional longer localizable description of the diagnostic.</comment>
+  </data>
 </root>

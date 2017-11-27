@@ -70,7 +70,16 @@ namespace SerilogAnalyzer
         private static readonly LocalizableString DestructureAnonymousObjectsDescription = new LocalizableResourceString(nameof(Resources.DestructureAnonymousObjectsAnalyzerDescription), Resources.ResourceManager, typeof(Resources));
         private static DiagnosticDescriptor DestructureAnonymousObjectsRule = new DiagnosticDescriptor(DestructureAnonymousObjectsDiagnosticId, DestructureAnonymousObjectsTitle, DestructureAnonymousObjectsMessageFormat, "CodeQuality", DiagnosticSeverity.Warning, isEnabledByDefault: true, description: DestructureAnonymousObjectsDescription);
 
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(ExceptionRule, TemplateRule, PropertyBindingRule, ConstantMessageTemplateRule, UniquePropertyNameRule, PascalPropertyNameRule, DestructureAnonymousObjectsRule);
+        public const string UseCorrectContextualLoggerDiagnosticId = "Serilog008";
+        private static readonly LocalizableString UseCorrectContextualLoggerTitle = new LocalizableResourceString(nameof(Resources.UseCorrectContextualLoggerAnalyzerTitle), Resources.ResourceManager, typeof(Resources));
+        private static readonly LocalizableString UseCorrectContextualLoggerMessageFormat = new LocalizableResourceString(nameof(Resources.UseCorrectContextualLoggerAnalyzerMessageFormat), Resources.ResourceManager, typeof(Resources));
+        private static readonly LocalizableString UseCorrectContextualLoggerDescription = new LocalizableResourceString(nameof(Resources.UseCorrectContextualLoggerAnalyzerDescription), Resources.ResourceManager, typeof(Resources));
+        private static DiagnosticDescriptor UseCorrectContextualLoggerRule = new DiagnosticDescriptor(UseCorrectContextualLoggerDiagnosticId, UseCorrectContextualLoggerTitle, UseCorrectContextualLoggerMessageFormat, "CodeQuality", DiagnosticSeverity.Warning, isEnabledByDefault: true, description: UseCorrectContextualLoggerDescription);
+
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(ExceptionRule, TemplateRule, PropertyBindingRule, ConstantMessageTemplateRule, UniquePropertyNameRule, PascalPropertyNameRule, DestructureAnonymousObjectsRule, UseCorrectContextualLoggerRule);
+
+        private const string ILogger = "Serilog.ILogger";
+        private const string ForContext = "ForContext";
 
         public override void Initialize(AnalysisContext context)
         {
@@ -92,6 +101,12 @@ namespace SerilogAnalyzer
             if (messageTemplateAttribute == null)
             {
                 return;
+            }
+
+            // check if ForContext<T> / ForContext(typeof(T)) calls use the containing type as T
+            if (method.Name == ForContext && method.ReturnType.ToString() == ILogger)
+            {
+                CheckForContextCorrectness(ref context, invocation, method);
             }
 
             // is it a serilog logging method?
@@ -236,6 +251,77 @@ namespace SerilogAnalyzer
                 {
                     context.ReportDiagnostic(Diagnostic.Create(ExceptionRule, argument.GetLocation(), argument.Expression.ToFullString()));
                 }
+            }
+        }
+
+        private static void CheckForContextCorrectness(ref SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocation, IMethodSymbol method)
+        {
+            // is this really a field / property?
+            var decl = invocation.Ancestors().OfType<MemberDeclarationSyntax>().FirstOrDefault();
+            if (!(decl is PropertyDeclarationSyntax || decl is FieldDeclarationSyntax))
+            {
+                return;
+            }
+
+            ITypeSymbol contextType = null;
+
+            // extract T from ForContext<T>
+            if (method.IsGenericMethod && method.TypeArguments.Length == 1)
+            {
+                contextType = method.TypeArguments[0];
+            }
+            // or extract T from ForContext(typeof(T))
+            else if (method.Parameters.Length == 1 & method.Parameters[0].Type.ToString() == "System.Type")
+            {
+                if (invocation.ArgumentList.Arguments.FirstOrDefault().Expression is TypeOfExpressionSyntax type && context.SemanticModel.GetTypeInfo(type.Type).Type is ITypeSymbol tsymbol)
+                {
+                    contextType = tsymbol;
+                }
+            }
+
+            // if there's no T...
+            if (contextType == null)
+            {
+                return;
+            }
+
+            // find the type this field / property is contained in
+            var declaringTypeSyntax = invocation.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault();
+            if (declaringTypeSyntax != null && context.SemanticModel.GetDeclaredSymbol(declaringTypeSyntax) is INamedTypeSymbol declaringType && !declaringType.Equals(contextType))
+            {
+                // if there are multiple field / properties of ILogger, we can't be certain, so do nothing
+                if (declaringType.GetMembers().Count(x => (x as IPropertySymbol)?.Type.ToString() == ILogger || (x as IFieldSymbol)?.Type.ToString() == ILogger) > 1)
+                {
+                    return;
+                }
+
+                // get the location of T to report on
+                Location location;
+                if (method.IsGenericMethod && invocation.Expression is MemberAccessExpressionSyntax member && member.Name is GenericNameSyntax generic)
+                {
+                    location = generic.TypeArgumentList.Arguments.First().GetLocation();
+                }
+                else
+                {
+                    location = (invocation.ArgumentList.Arguments.First().Expression as TypeOfExpressionSyntax).Type.GetLocation();
+                }
+
+                // get the name of the logger variable
+                string loggerName = null;
+                var declaringMember = invocation.Ancestors().OfType<MemberDeclarationSyntax>().FirstOrDefault();
+                if (declaringMember is PropertyDeclarationSyntax property)
+                {
+                    loggerName = property.Identifier.ToString();
+                }
+                else if (declaringMember is FieldDeclarationSyntax field && field.Declaration.Variables.FirstOrDefault() is VariableDeclaratorSyntax fieldVariable)
+                {
+                    loggerName = fieldVariable.Identifier.ToString();
+                }
+
+                string correctMethod = method.IsGenericMethod ? $"ForContext<{declaringType}>()" : $"ForContext(typeof({declaringType}))";
+                string incorrectMethod = method.IsGenericMethod ? $"ForContext<{contextType}>()" : $"ForContext(typeof({contextType}))";
+
+                context.ReportDiagnostic(Diagnostic.Create(UseCorrectContextualLoggerRule, location, loggerName, correctMethod, incorrectMethod));
             }
         }
 

@@ -50,7 +50,7 @@ namespace SerilogAnalyzer
                 return null;
             }
 
-            var parameters = (symbol as IMethodSymbol)?.Parameters ?? (symbol as IPropertySymbol)?.Parameters ?? ImmutableArray.Create<IParameterSymbol>();
+            var parameters = (symbol as IMethodSymbol)?.Parameters ?? (symbol as IPropertySymbol)?.Parameters ?? ImmutableArray<IParameterSymbol>.Empty;
 
             // Handle named argument
             if (argument.NameColon != null && !argument.NameColon.IsMissing)

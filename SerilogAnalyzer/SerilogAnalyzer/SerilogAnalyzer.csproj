@@ -33,6 +33,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="AnalyzingMessageTemplateParser.cs" />
+    <Compile Include="CorrectLoggerContextCodeFixProvider.cs" />
     <Compile Include="DestructuringHintCodeFixProvider.cs" />
     <Compile Include="CodeFixProvider.cs" />
     <Compile Include="ConvertToMessageTemplateCodeRefactoringProvider.StringConcat.cs" />

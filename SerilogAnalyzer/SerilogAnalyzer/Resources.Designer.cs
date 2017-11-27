@@ -249,5 +249,32 @@ namespace SerilogAnalyzer {
                 return ResourceManager.GetString("UniquePropertyNameAnalyzerTitle", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Checks that loggers are initialized with the current class as ForContext.
+        /// </summary>
+        internal static string UseCorrectContextualLoggerAnalyzerDescription {
+            get {
+                return ResourceManager.GetString("UseCorrectContextualLoggerAnalyzerDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Logger &apos;{0}&apos; should use {1} instead of {2}.
+        /// </summary>
+        internal static string UseCorrectContextualLoggerAnalyzerMessageFormat {
+            get {
+                return ResourceManager.GetString("UseCorrectContextualLoggerAnalyzerMessageFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Contextual loggers use the correct context verifier.
+        /// </summary>
+        internal static string UseCorrectContextualLoggerAnalyzerTitle {
+            get {
+                return ResourceManager.GetString("UseCorrectContextualLoggerAnalyzerTitle", resourceCulture);
+            }
+        }
     }
 }

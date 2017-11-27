@@ -155,6 +155,34 @@ A CodeFix is provided, that applies the destructuring hint.
 Log.Information("Saving {@File} to {Directory}", new { Name = name, Size = size }, directory); 
 ```
 
+### `Serilog008`: Correct contextual Logger Verifier
+
+Checks that contextual loggers are constructed with the correct type.
+
+**Detected incorrect usage:**
+
+```csharp
+class A
+{
+    private static readonly ILogger Logger = Logger.ForContext<B>());
+}
+
+class B {}
+```
+
+A CodeFix is provided, that uses the correct type.
+
+**Correct usage:**
+
+```csharp
+class A
+{
+    private static readonly ILogger Logger = Logger.ForContext<A>());
+}
+
+class B {} 
+```
+
 ## Refactors
 Performs static analysis on a fluent LoggerConfiguration call to generate configuration for use with either [`<appSettings>`](https://github.com/serilog/serilog-settings-appsettings) or [`appSettings.json`](https://github.com/serilog/serilog-settings-configuration)
 
