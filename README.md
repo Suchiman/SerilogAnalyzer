@@ -164,7 +164,7 @@ Checks that contextual loggers are constructed with the correct type.
 ```csharp
 class A
 {
-    private static readonly ILogger Logger = Logger.ForContext<B>());
+    private static readonly ILogger Logger = Logger.ForContext<B>();
 }
 
 class B {}
@@ -177,7 +177,7 @@ A CodeFix is provided, that uses the correct type.
 ```csharp
 class A
 {
-    private static readonly ILogger Logger = Logger.ForContext<A>());
+    private static readonly ILogger Logger = Logger.ForContext<A>();
 }
 
 class B {} 
