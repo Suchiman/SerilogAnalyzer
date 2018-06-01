@@ -661,6 +661,53 @@ class Program
         }
 
         [TestMethod]
+        public void TestStringEmptyIsConstantMessageTemplate()
+        {
+            string src = @"
+    using Serilog;
+    using System;
+
+    class TypeName
+    {
+        public static void Test()
+        {
+            Log.Error(String.Empty);
+            Log.Error(string.Empty);
+        }
+    }";
+
+            VerifyCSharpDiagnostic(src);
+        }
+
+        [TestMethod]
+        public void TestStringEmptyWithTooManyArguments()
+        {
+            string src = @"
+    using Serilog;
+    using System;
+
+    class TypeName
+    {
+        public static void Test()
+        {
+            Log.Error(String.Empty, ""Hello"");
+        }
+    }";
+
+            var expected = new DiagnosticResult
+            {
+                Id = "Serilog003",
+                Message = String.Format("Error while binding properties: {0}", "There is no property that corresponds to this argument"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 9, 37, 7)
+                }
+            };
+            VerifyCSharpDiagnostic(src, expected);
+        }
+
+        [TestMethod]
         public void TestDiagnosticLengthWithEscapes()
         {
             string src = @"

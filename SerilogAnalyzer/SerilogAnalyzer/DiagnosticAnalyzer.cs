@@ -146,15 +146,23 @@ namespace SerilogAnalyzer
                     {
                         // can we at least get a computed constant value for it?
                         var constantValue = context.SemanticModel.GetConstantValue(argument.Expression, context.CancellationToken);
-                        if (!constantValue.HasValue || !(constantValue.Value is string))
+                        if (!constantValue.HasValue || !(constantValue.Value is string constString))
                         {
-                            context.ReportDiagnostic(Diagnostic.Create(ConstantMessageTemplateRule, argument.Expression.GetLocation(), argument.Expression.ToString()));
-                            continue;
+                            INamedTypeSymbol StringType() => context.SemanticModel.Compilation.GetTypeByMetadataName("System.String");
+                            if (context.SemanticModel.GetSymbolInfo(argument.Expression, context.CancellationToken).Symbol is IFieldSymbol field && field.Name == "Empty" && field.Type == StringType())
+                            {
+                                constString = "";
+                            }
+                            else
+                            {
+                                context.ReportDiagnostic(Diagnostic.Create(ConstantMessageTemplateRule, argument.Expression.GetLocation(), argument.Expression.ToString()));
+                                continue;
+                            }
                         }
 
                         // we can't map positions back from the computed string into the real positions
                         exactPositions = false;
-                        messageTemplate = constantValue.Value as string;
+                        messageTemplate = constString;
                     }
 
                     literalSpan = argument.Expression.GetLocation().SourceSpan;
