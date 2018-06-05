@@ -27,7 +27,7 @@ using System.Threading.Tasks;
 
 namespace SerilogAnalyzer
 {
-    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(SerilogAnalyzerCodeFixProvider)), Shared]
+    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(SerilogAnalyzerPascalCaseCodeFixProvider)), Shared]
     public class SerilogAnalyzerPascalCaseCodeFixProvider : CodeFixProvider
     {
         private const char stringificationPrefix = '$';
