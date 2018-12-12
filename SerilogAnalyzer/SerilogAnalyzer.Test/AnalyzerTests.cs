@@ -882,6 +882,492 @@ class Program
     }";
             VerifyCSharpDiagnostic(test);
         }
+        [TestMethod]
+        public void TestIssue39_LocalExceptionInFormatArgs()
+        {
+            var test = @"
+using System;
+using System.Runtime.CompilerServices;
+using Logging;
+using Serilog.Core;
+
+namespace ConsoleApplication1
+{
+    class TypeName
+    {
+        public static void Test()
+        {
+            IMyLogger test = null;
+            try
+            {
+            }
+            catch (ArgumentException ex)
+            {
+                test.Warning(""Hello World"", ex);
+            }
+        }
+    }
+}
+namespace Logging
+{
+    public interface IMyLogger {}
+
+    public static class LoggerExtensions
+    {
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate, object arg) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate, object arg1, object arg2) {}
+
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate, object arg) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate, object arg1, object arg2) {}
+    }
+}";
+
+            // Test0.cs(19,45): error Serilog003: Error while binding properties: There is no property that corresponds to this argument
+            // Test0.cs(19,45): warning Serilog001: The exception 'ex' should be passed as first argument
+            var expected003 = new DiagnosticResult
+            {
+                Id = "Serilog003",
+                Message = String.Format("Error while binding properties: {0}", "There is no property that corresponds to this argument"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 19, 45, 2)
+                }
+            };
+            var expected001 = new DiagnosticResult
+            {
+                Id = "Serilog001",
+                Message = String.Format("The exception '{0}' should be passed as first argument", "ex"),
+                Severity = DiagnosticSeverity.Warning,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 19, 45, 2)
+                }
+            };
+
+            VerifyCSharpDiagnostic(test, expected003, expected001);
+
+            var fixtest = @"
+using System;
+using System.Runtime.CompilerServices;
+using Logging;
+using Serilog.Core;
+
+namespace ConsoleApplication1
+{
+    class TypeName
+    {
+        public static void Test()
+        {
+            IMyLogger test = null;
+            try
+            {
+            }
+            catch (ArgumentException ex)
+            {
+                test.Warning(ex, ""Hello World"");
+            }
+        }
+    }
+}
+namespace Logging
+{
+    public interface IMyLogger {}
+
+    public static class LoggerExtensions
+    {
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate, object arg) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate, object arg1, object arg2) {}
+
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate, object arg) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate, object arg1, object arg2) {}
+    }
+}";
+
+            VerifyCSharpFix(test, fixtest);
+        }
+
+        [TestMethod]
+        public void TestIssue39_MethodReturningExceptionInFormatArgs()
+        {
+            var test = @"
+using System;
+using System.Runtime.CompilerServices;
+using Logging;
+using Serilog.Core;
+
+namespace ConsoleApplication1
+{
+    class TypeName
+    {
+        public static void Test()
+        {
+            IMyLogger test = null;
+            try
+            {
+            }
+            catch (ArgumentException ex)
+            {
+                test.Warning(""Hello World"", TestMethod(ex));
+            }
+        }
+
+        public static Exception TestMethod(Exception ex) => ex;
+    }
+}
+namespace Logging
+{
+    public interface IMyLogger {}
+
+    public static class LoggerExtensions
+    {
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate, object arg) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate, object arg1, object arg2) {}
+
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate, object arg) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate, object arg1, object arg2) {}
+    }
+}";
+
+            var expected003 = new DiagnosticResult
+            {
+                Id = "Serilog003",
+                Message = String.Format("Error while binding properties: {0}", "There is no property that corresponds to this argument"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 19, 45, 14)
+                }
+            };
+            var expected001 = new DiagnosticResult
+            {
+                Id = "Serilog001",
+                Message = String.Format("The exception '{0}' should be passed as first argument", "TestMethod(ex)"),
+                Severity = DiagnosticSeverity.Warning,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 19, 45, 14)
+                }
+            };
+
+            VerifyCSharpDiagnostic(test, expected003, expected001);
+
+            var fixtest = @"
+using System;
+using System.Runtime.CompilerServices;
+using Logging;
+using Serilog.Core;
+
+namespace ConsoleApplication1
+{
+    class TypeName
+    {
+        public static void Test()
+        {
+            IMyLogger test = null;
+            try
+            {
+            }
+            catch (ArgumentException ex)
+            {
+                test.Warning(TestMethod(ex), ""Hello World"");
+            }
+        }
+
+        public static Exception TestMethod(Exception ex) => ex;
+    }
+}
+namespace Logging
+{
+    public interface IMyLogger {}
+
+    public static class LoggerExtensions
+    {
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate, object arg) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate, object arg1, object arg2) {}
+
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate, object arg) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate, object arg1, object arg2) {}
+    }
+}";
+            VerifyCSharpFix(test, fixtest);
+        }
+
+        [TestMethod]
+        public void TestIssue39_LocalExceptionInFormatArgsStaticMethodInvocation()
+        {
+            var test = @"
+using System;
+using System.Runtime.CompilerServices;
+using Logging;
+using Serilog.Core;
+
+namespace ConsoleApplication1
+{
+    class TypeName
+    {
+        public static void Test()
+        {
+            IMyLogger test = null;
+            try
+            {
+            }
+            catch (ArgumentException ex)
+            {
+                LoggerExtensions.Warning(test, ""Hello World"", ex);
+            }
+        }
+    }
+}
+namespace Logging
+{
+    public interface IMyLogger {}
+
+    public static class LoggerExtensions
+    {
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate, object arg) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate, object arg1, object arg2) {}
+
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate, object arg) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate, object arg1, object arg2) {}
+    }
+}";
+
+            // Test0.cs(19,45): error Serilog003: Error while binding properties: There is no property that corresponds to this argument
+            // Test0.cs(19,45): warning Serilog001: The exception 'ex' should be passed as first argument
+            var expected003 = new DiagnosticResult
+            {
+                Id = "Serilog003",
+                Message = String.Format("Error while binding properties: {0}", "There is no property that corresponds to this argument"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 19, 63, 2)
+                }
+            };
+            var expected001 = new DiagnosticResult
+            {
+                Id = "Serilog001",
+                Message = String.Format("The exception '{0}' should be passed as first argument", "ex"),
+                Severity = DiagnosticSeverity.Warning,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 19, 63, 2)
+                }
+            };
+
+            VerifyCSharpDiagnostic(test, expected003, expected001);
+
+            var fixtest = @"
+using System;
+using System.Runtime.CompilerServices;
+using Logging;
+using Serilog.Core;
+
+namespace ConsoleApplication1
+{
+    class TypeName
+    {
+        public static void Test()
+        {
+            IMyLogger test = null;
+            try
+            {
+            }
+            catch (ArgumentException ex)
+            {
+                LoggerExtensions.Warning(test, ex, ""Hello World"");
+            }
+        }
+    }
+}
+namespace Logging
+{
+    public interface IMyLogger {}
+
+    public static class LoggerExtensions
+    {
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate, object arg) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate, object arg1, object arg2) {}
+
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate, object arg) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate, object arg1, object arg2) {}
+    }
+}";
+
+            VerifyCSharpFix(test, fixtest);
+        }
+
+        [TestMethod]
+        public void TestIssue39_MethodReturningExceptionInFormatArgsStaticMethodInvocation()
+        {
+            var test = @"
+using System;
+using System.Runtime.CompilerServices;
+using Logging;
+using Serilog.Core;
+
+namespace ConsoleApplication1
+{
+    class TypeName
+    {
+        public static void Test()
+        {
+            IMyLogger test = null;
+            try
+            {
+            }
+            catch (ArgumentException ex)
+            {
+                LoggerExtensions.Warning(test, ""Hello World"", TestMethod(ex));
+            }
+        }
+
+        public static Exception TestMethod(Exception ex) => ex;
+    }
+}
+namespace Logging
+{
+    public interface IMyLogger {}
+
+    public static class LoggerExtensions
+    {
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate, object arg) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate, object arg1, object arg2) {}
+
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate, object arg) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate, object arg1, object arg2) {}
+    }
+}";
+
+            var expected003 = new DiagnosticResult
+            {
+                Id = "Serilog003",
+                Message = String.Format("Error while binding properties: {0}", "There is no property that corresponds to this argument"),
+                Severity = DiagnosticSeverity.Error,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 19, 63, 14)
+                }
+            };
+            var expected001 = new DiagnosticResult
+            {
+                Id = "Serilog001",
+                Message = String.Format("The exception '{0}' should be passed as first argument", "TestMethod(ex)"),
+                Severity = DiagnosticSeverity.Warning,
+                Locations = new[]
+                {
+                    new DiagnosticResultLocation("Test0.cs", 19, 63, 14)
+                }
+            };
+
+            VerifyCSharpDiagnostic(test, expected003, expected001);
+
+            var fixtest = @"
+using System;
+using System.Runtime.CompilerServices;
+using Logging;
+using Serilog.Core;
+
+namespace ConsoleApplication1
+{
+    class TypeName
+    {
+        public static void Test()
+        {
+            IMyLogger test = null;
+            try
+            {
+            }
+            catch (ArgumentException ex)
+            {
+                LoggerExtensions.Warning(test, TestMethod(ex), ""Hello World"");
+            }
+        }
+
+        public static Exception TestMethod(Exception ex) => ex;
+    }
+}
+namespace Logging
+{
+    public interface IMyLogger {}
+
+    public static class LoggerExtensions
+    {
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate, object arg) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, string messageTemplate, object arg1, object arg2) {}
+
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate, object arg) {}
+        [MessageTemplateFormatMethod(""messageTemplate"")]
+        public static void Warning(this IMyLogger logger, Exception ex, string messageTemplate, object arg1, object arg2) {}
+    }
+}";
+            VerifyCSharpFix(test, fixtest);
+        }
+
 
         protected override CodeFixProvider GetCSharpCodeFixProvider()
         {
