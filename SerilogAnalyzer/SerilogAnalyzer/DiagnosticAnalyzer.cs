@@ -240,13 +240,13 @@ namespace SerilogAnalyzer
 
             // is this an overload where the exception argument is used?
             var exception = context.SemanticModel.Compilation.GetTypeByMetadataName("System.Exception");
-            if (method.Parameters.First().Type == exception)
+            if (HasConventionalExceptionParameter(method))
             {
                 return;
             }
 
             // is there an overload with the exception argument?
-            if (!method.ContainingType.GetMembers().OfType<IMethodSymbol>().Any(x => x.Name == method.Name && x.Parameters.FirstOrDefault()?.Type == exception))
+            if (!method.ContainingType.GetMembers().OfType<IMethodSymbol>().Any(x => x.Name == method.Name && HasConventionalExceptionParameter(x)))
             {
                 return;
             }
@@ -259,6 +259,13 @@ namespace SerilogAnalyzer
                 {
                     context.ReportDiagnostic(Diagnostic.Create(ExceptionRule, argument.GetLocation(), argument.Expression.ToFullString()));
                 }
+            }
+
+            // Check if there is an Exception parameter at position 1 (position 2 for static extension method invocations)?
+            bool HasConventionalExceptionParameter(IMethodSymbol methodSymbol)
+            {
+                return methodSymbol.Parameters.FirstOrDefault()?.Type == exception ||
+                       methodSymbol.IsExtensionMethod && methodSymbol.Parameters.Skip(1).FirstOrDefault()?.Type == exception;
             }
         }
 

@@ -62,7 +62,20 @@ namespace SerilogAnalyzer
             var argumentList = argument.AncestorsAndSelf().OfType<ArgumentListSyntax>().First();
 
             var newList = argumentList.Arguments.Remove(argument);
-            newList = newList.Insert(0, argument);
+
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
+            var symbolInfo = semanticModel.GetSymbolInfo(argumentList.Parent);
+
+            if (symbolInfo.Symbol is IMethodSymbol methodSymbol && methodSymbol.IsExtensionMethod && methodSymbol.IsStatic)
+            {
+                // This is a static method invocation of an extension method, so the first parameter is the
+                // extended type itself; hence we insert at the second position
+                newList = newList.Insert(1, argument);
+            }
+            else
+            {
+                newList = newList.Insert(0, argument);
+            }
 
             root = root.ReplaceNode(argumentList, argumentList.WithArguments(newList));
             document = document.WithSyntaxRoot(root);
