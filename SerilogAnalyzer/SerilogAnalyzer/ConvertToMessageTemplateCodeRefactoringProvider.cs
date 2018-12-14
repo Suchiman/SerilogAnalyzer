@@ -56,7 +56,7 @@ namespace SerilogAnalyzer
 
             if (declaration.Parent.Parent is InvocationExpressionSyntax logger)
             {
-                var semanticModel = await context.Document.GetSemanticModelAsync(context.CancellationToken);
+                var semanticModel = await context.Document.GetSemanticModelAsync(context.CancellationToken).ConfigureAwait(false);
                 if (declaration.Expression is InvocationExpressionSyntax inv && semanticModel.GetSymbolInfo(inv.Expression).Symbol is IMethodSymbol symbol && symbol.ToString().StartsWith("string.Format(") && inv.ArgumentList?.Arguments.Count > 0)
                 {
                     context.RegisterCodeFix(CodeAction.Create(title, c => ConvertStringFormatToMessageTemplateAsync(context.Document, inv, logger, c), title), diagnostic);
@@ -84,8 +84,8 @@ namespace SerilogAnalyzer
             }
             sb.Append('"');
 
-            var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
-            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 
             var usedNames = new HashSet<string>();
             var argumentExpressions = new List<ExpressionSyntax>();

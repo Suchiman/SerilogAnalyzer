@@ -30,7 +30,7 @@ namespace SerilogAnalyzer
         {
             GetFormatStringAndExpressionsFromStringFormat(stringFormat, out var format, out var expressions);
 
-            return await InlineFormatAndArgumentsIntoLoggerStatementAsync(document, stringFormat, logger, format, expressions, cancellationToken);
+            return await InlineFormatAndArgumentsIntoLoggerStatementAsync(document, stringFormat, logger, format, expressions, cancellationToken).ConfigureAwait(false);
         }
         
         private static void GetFormatStringAndExpressionsFromStringFormat(InvocationExpressionSyntax stringFormat, out InterpolatedStringExpressionSyntax format, out List<ExpressionSyntax> expressions)

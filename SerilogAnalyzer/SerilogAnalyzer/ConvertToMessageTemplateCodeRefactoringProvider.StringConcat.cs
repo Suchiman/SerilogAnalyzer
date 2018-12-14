@@ -29,7 +29,7 @@ namespace SerilogAnalyzer
         {
             GetFormatStringAndExpressionsFromStringConcat(stringConcat, out var format, out var expressions);
 
-            return await InlineFormatAndArgumentsIntoLoggerStatementAsync(document, stringConcat, logger, format, expressions, cancellationToken);
+            return await InlineFormatAndArgumentsIntoLoggerStatementAsync(document, stringConcat, logger, format, expressions, cancellationToken).ConfigureAwait(false);
         }
 
         private static void GetFormatStringAndExpressionsFromStringConcat(ExpressionSyntax stringConcat, out InterpolatedStringExpressionSyntax format, out List<ExpressionSyntax> expressions)

@@ -58,12 +58,12 @@ namespace SerilogAnalyzer
 
         private async Task<Solution> MoveExceptionFirstAsync(Document document, ArgumentSyntax argument, CancellationToken cancellationToken)
         {
-            var root = await document.GetSyntaxRootAsync(cancellationToken);
+            var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
             var argumentList = argument.AncestorsAndSelf().OfType<ArgumentListSyntax>().First();
 
             var newList = argumentList.Arguments.Remove(argument);
 
-            var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
             var symbolInfo = semanticModel.GetSymbolInfo(argumentList.Parent);
 
             if (symbolInfo.Symbol is IMethodSymbol methodSymbol && methodSymbol.IsExtensionMethod && methodSymbol.IsStatic)
