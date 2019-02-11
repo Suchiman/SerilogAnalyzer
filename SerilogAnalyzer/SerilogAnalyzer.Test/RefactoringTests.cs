@@ -269,7 +269,7 @@ class TypeName
     {
         /*
         ""Serilog"": {
-          ""Using"": [""Serilog"", ""Serilog.Sinks.Literate"", ""Serilog.Sinks.File""],
+          ""Using"": [""Serilog.Sinks.Literate"", ""Serilog.Sinks.File""],
           ""MinimumLevel"": ""Debug"",
           ""WriteTo"": [
             { ""Name"": ""LiterateConsole"", ""Args"": { ""outputTemplate"": ""test"", ""restrictedToMinimumLevel"": ""Information"" } }
@@ -408,6 +408,10 @@ class TypeName
 {
     public static void Test()
     {
+        /*
+        <add key=""serilog:minimum-level:override:System"" value=""Fatal"" />
+        <add key=""serilog:minimum-level:override:Microsoft"" value=""Warning"" />
+        */
         ILogger test = new LoggerConfiguration()
             .MinimumLevel.Override(""Microsoft"", Serilog.Events.LogEventLevel.Warning)
             .MinimumLevel.Override(""System"", Serilog.Events.LogEventLevel.Fatal)
@@ -443,9 +447,8 @@ class TypeName
     public static void Test()
     {
         /*
-        Errors:
-        MinimumLevelOverrides are not supported in <appSettings>
-
+        <add key=""serilog:minimum-level:override:System"" value=""Fatal"" />
+        <add key=""serilog:minimum-level:override:Microsoft"" value=""Warning"" />
         <add key=""serilog:write-to:RollingFile.pathFormat"" value=""logfile.txt"" />
         <add key=""serilog:using:RollingFile"" value=""Serilog.Sinks.RollingFile"" />
         */
@@ -689,28 +692,47 @@ internal class Stuff<T> : IFormatProvider
         {
             var test = @"
 using Serilog;
-using System;
+using Serilog.Core;
+using Serilog.Events;
+
+class Enricher : ILogEventEnricher
+{
+    public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory) { }
+}
 
 class TypeName
 {
     public static void Test()
     {
         ILogger test = [|new LoggerConfiguration()
-            .Enrich.With(null)
+            .Enrich.With(new Enricher())
             .CreateLogger()|];
     }
 }";
 
             var fixtest = @"
 using Serilog;
-using System;
+using Serilog.Core;
+using Serilog.Events;
+
+class Enricher : ILogEventEnricher
+{
+    public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory) { }
+}
 
 class TypeName
 {
     public static void Test()
     {
+        /*
+        ""Serilog"": {
+          ""Enrich"": [
+            { ""Name"": ""With"", ""Args"": { ""enricher"": ""Enricher, TestProject, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"" } }
+          ]
+        }
+        */
         ILogger test = new LoggerConfiguration()
-            .Enrich.With(null)
+            .Enrich.With(new Enricher())
             .CreateLogger();
     }
 }";
@@ -718,7 +740,107 @@ class TypeName
         }
 
         [TestMethod]
-        public void TestEnrichWithGenericEnricher()
+        public void TestEnrichWithGenericEnricherXml()
+        {
+            var test = @"
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+
+class Enricher : ILogEventEnricher
+{
+    public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory) { }
+}
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .Enrich.With<Enricher>()
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+
+class Enricher : ILogEventEnricher
+{
+    public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory) { }
+}
+
+class TypeName
+{
+    public static void Test()
+    {
+        /*
+        <add key=""serilog:enrich:With.enricher"" value=""Enricher, TestProject, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"" />
+        */
+        ILogger test = new LoggerConfiguration()
+            .Enrich.With<Enricher>()
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show <appSettings> config");
+        }
+
+        [TestMethod]
+        public void TestEnrichWithGenericEnricherJson()
+        {
+            var test = @"
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+
+class Enricher : ILogEventEnricher
+{
+    public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory) { }
+}
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .Enrich.With<Test>()
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+
+class Enricher : ILogEventEnricher
+{
+    public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory) { }
+}
+
+class TypeName
+{
+    public static void Test()
+    {
+        /*
+        ""Serilog"": {
+          ""Enrich"": [
+            { ""Name"": ""With"", ""Args"": { ""enricher"": ""Test, TestProject, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"" } }
+          ]
+        }
+        */
+        ILogger test = new LoggerConfiguration()
+            .Enrich.With<Test>()
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
+        }
+
+        [TestMethod]
+        public void TestFilterXml()
         {
             var test = @"
 using Serilog;
@@ -729,7 +851,7 @@ class TypeName
     public static void Test()
     {
         ILogger test = [|new LoggerConfiguration()
-            .Enrich.With<Test>()
+            .Filter.ByExcluding(""A = 'A'"")
             .CreateLogger()|];
     }
 }";
@@ -742,8 +864,455 @@ class TypeName
 {
     public static void Test()
     {
+        /*
+        <add key=""serilog:filter:ByExcluding.expression"" value=""A = 'A'"" />
+        */
         ILogger test = new LoggerConfiguration()
-            .Enrich.With<Test>()
+            .Filter.ByExcluding(""A = 'A'"")
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show <appSettings> config");
+        }
+
+        [TestMethod]
+        public void TestFilterJson()
+        {
+            var test = @"
+using Serilog;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .Filter.ByExcluding(""A = 'A'"")
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        /*
+        ""Serilog"": {
+          ""Filter"": [
+            { ""Name"": ""ByExcluding"", ""Args"": { ""expression"": ""A = 'A'"" } }
+          ]
+        }
+        */
+        ILogger test = new LoggerConfiguration()
+            .Filter.ByExcluding(""A = 'A'"")
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
+        }
+
+        [TestMethod]
+        public void TestStaticPropertyXml()
+        {
+            var test = @"
+using Serilog;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .WriteTo.Console(theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Literate)
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        /*
+        <add key=""serilog:write-to:Console.theme"" value=""Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme::Literate, Serilog.Sinks.Console, Version=3.1.1.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10"" />
+        <add key=""serilog:using:Console"" value=""Serilog.Sinks.Console"" />
+        */
+        ILogger test = new LoggerConfiguration()
+            .WriteTo.Console(theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Literate)
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show <appSettings> config");
+        }
+
+        [TestMethod]
+        public void TestStaticPropertyJson()
+        {
+            var test = @"
+using Serilog;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .WriteTo.Console(theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Literate)
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        /*
+        ""Serilog"": {
+          ""Using"": [""Serilog.Sinks.Console""],
+          ""WriteTo"": [
+            { ""Name"": ""Console"", ""Args"": { ""theme"": ""Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme::Literate, Serilog.Sinks.Console, Version=3.1.1.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10"" } }
+          ]
+        }
+        */
+        ILogger test = new LoggerConfiguration()
+            .WriteTo.Console(theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Literate)
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
+        }
+
+        [TestMethod]
+        public void TestMinimumLevelControlledByXml()
+        {
+            var test = @"
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var sw = new LoggingLevelSwitch(LogEventLevel.Information);
+        ILogger test = [|new LoggerConfiguration()
+            .MinimumLevel.ControlledBy(sw)
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var sw = new LoggingLevelSwitch(LogEventLevel.Information);
+        /*
+        <add key=""serilog:level-switch:$sw"" value=""Information"" />
+        <add key=""serilog:minimum-level:controlled-by"" value=""$sw"" />
+        */
+        ILogger test = new LoggerConfiguration()
+            .MinimumLevel.ControlledBy(sw)
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show <appSettings> config");
+        }
+
+        [TestMethod]
+        public void TestMinimumLevelControlledByJson()
+        {
+            var test = @"
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var sw = new LoggingLevelSwitch(LogEventLevel.Information);
+        ILogger test = [|new LoggerConfiguration()
+            .MinimumLevel.ControlledBy(sw)
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var sw = new LoggingLevelSwitch(LogEventLevel.Information);
+        /*
+        ""Serilog"": {
+          ""LevelSwitches"": { ""$sw"": ""Information"" },
+          ""MinimumLevel"": {
+            ""ControlledBy"": ""$sw""
+          }
+        }
+        */
+        ILogger test = new LoggerConfiguration()
+            .MinimumLevel.ControlledBy(sw)
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
+        }
+
+        [TestMethod]
+        public void TestWriteToConsoleLevelSwitchXml()
+        {
+            var test = @"
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var sw = new LoggingLevelSwitch(LogEventLevel.Information);
+        ILogger test = [|new LoggerConfiguration()
+            .WriteTo.Console(levelSwitch: sw)
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var sw = new LoggingLevelSwitch(LogEventLevel.Information);
+        /*
+        <add key=""serilog:level-switch:$sw"" value=""Information"" />
+        <add key=""serilog:write-to:Console.levelSwitch"" value=""$sw"" />
+        <add key=""serilog:using:Console"" value=""Serilog.Sinks.Console"" />
+        */
+        ILogger test = new LoggerConfiguration()
+            .WriteTo.Console(levelSwitch: sw)
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show <appSettings> config");
+        }
+
+        [TestMethod]
+        public void TestWriteToConsoleLevelSwitchJson()
+        {
+            var test = @"
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var sw = new LoggingLevelSwitch(LogEventLevel.Information);
+        ILogger test = [|new LoggerConfiguration()
+            .WriteTo.Console(levelSwitch: sw)
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+using System;
+
+class TypeName
+{
+    public static void Test()
+    {
+        var sw = new LoggingLevelSwitch(LogEventLevel.Information);
+        /*
+        ""Serilog"": {
+          ""Using"": [""Serilog.Sinks.Console""],
+          ""LevelSwitches"": { ""$sw"": ""Information"" },
+          ""WriteTo"": [
+            { ""Name"": ""Console"", ""Args"": { ""levelSwitch"": ""$sw"" } }
+          ]
+        }
+        */
+        ILogger test = new LoggerConfiguration()
+            .WriteTo.Console(levelSwitch: sw)
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show appsettings.json config");
+        }
+
+        [TestMethod]
+        public void TestDestructureXml()
+        {
+            var test = @"
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+using System;
+
+public class CustomPolicy : IDestructuringPolicy
+{
+    public bool TryDestructure(object value, ILogEventPropertyValueFactory propertyValueFactory, out LogEventPropertyValue result)
+    {
+        result = null;
+        return false;
+    }
+}
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .Destructure.ToMaximumDepth(maximumDestructuringDepth: 3)
+            .Destructure.ToMaximumStringLength(maximumStringLength: 3)
+            .Destructure.ToMaximumCollectionCount(maximumCollectionCount: 3)
+            .Destructure.AsScalar(typeof(System.Version))
+            .Destructure.With(new CustomPolicy())
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+using System;
+
+public class CustomPolicy : IDestructuringPolicy
+{
+    public bool TryDestructure(object value, ILogEventPropertyValueFactory propertyValueFactory, out LogEventPropertyValue result)
+    {
+        result = null;
+        return false;
+    }
+}
+
+class TypeName
+{
+    public static void Test()
+    {
+        /*
+        <add key=""serilog:destructure:With.policy"" value=""CustomPolicy, TestProject, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"" />
+        <add key=""serilog:destructure:AsScalar.scalarType"" value=""System.Version, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"" />
+        <add key=""serilog:destructure:ToMaximumCollectionCount.maximumCollectionCount"" value=""3"" />
+        <add key=""serilog:destructure:ToMaximumStringLength.maximumStringLength"" value=""3"" />
+        <add key=""serilog:destructure:ToMaximumDepth.maximumDestructuringDepth"" value=""3"" />
+        */
+        ILogger test = new LoggerConfiguration()
+            .Destructure.ToMaximumDepth(maximumDestructuringDepth: 3)
+            .Destructure.ToMaximumStringLength(maximumStringLength: 3)
+            .Destructure.ToMaximumCollectionCount(maximumCollectionCount: 3)
+            .Destructure.AsScalar(typeof(System.Version))
+            .Destructure.With(new CustomPolicy())
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show <appSettings> config");
+        }
+
+        [TestMethod]
+        public void TestDestructureJson()
+        {
+            var test = @"
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+using System;
+
+public class CustomPolicy : IDestructuringPolicy
+{
+    public bool TryDestructure(object value, ILogEventPropertyValueFactory propertyValueFactory, out LogEventPropertyValue result)
+    {
+        result = null;
+        return false;
+    }
+}
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .Destructure.ToMaximumDepth(maximumDestructuringDepth: 3)
+            .Destructure.ToMaximumStringLength(maximumStringLength: 3)
+            .Destructure.ToMaximumCollectionCount(maximumCollectionCount: 3)
+            .Destructure.AsScalar(typeof(System.Version))
+            .Destructure.With(new CustomPolicy())
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+using System;
+
+public class CustomPolicy : IDestructuringPolicy
+{
+    public bool TryDestructure(object value, ILogEventPropertyValueFactory propertyValueFactory, out LogEventPropertyValue result)
+    {
+        result = null;
+        return false;
+    }
+}
+
+class TypeName
+{
+    public static void Test()
+    {
+        /*
+        ""Serilog"": {
+          ""Destructure"": [
+            { ""Name"": ""With"", ""Args"": { ""policy"": ""CustomPolicy, TestProject, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"" } },
+            { ""Name"": ""AsScalar"", ""Args"": { ""scalarType"": ""System.Version, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"" } },
+            { ""Name"": ""ToMaximumCollectionCount"", ""Args"": { ""maximumCollectionCount"": ""3"" } },
+            { ""Name"": ""ToMaximumStringLength"", ""Args"": { ""maximumStringLength"": ""3"" } },
+            { ""Name"": ""ToMaximumDepth"", ""Args"": { ""maximumDestructuringDepth"": ""3"" } }
+          ]
+        }
+        */
+        ILogger test = new LoggerConfiguration()
+            .Destructure.ToMaximumDepth(maximumDestructuringDepth: 3)
+            .Destructure.ToMaximumStringLength(maximumStringLength: 3)
+            .Destructure.ToMaximumCollectionCount(maximumCollectionCount: 3)
+            .Destructure.AsScalar(typeof(System.Version))
+            .Destructure.With(new CustomPolicy())
             .CreateLogger();
     }
 }";
@@ -895,6 +1464,60 @@ class TypeName
     }
 }";
             VerifyCSharpRefactoring(test, fixtest);
+        }
+
+        [TestMethod]
+        public void TestWriteToSinkXml()
+        {
+            var test = @"
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+
+class TestSink : ILogEventSink
+{
+    public void Emit(LogEvent logEvent)
+    {
+        throw new System.NotImplementedException();
+    }
+}
+
+class TypeName
+{
+    public static void Test()
+    {
+        ILogger test = [|new LoggerConfiguration()
+            .WriteTo.Sink(new TestSink())
+            .CreateLogger()|];
+    }
+}";
+
+            var fixtest = @"
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+
+class TestSink : ILogEventSink
+{
+    public void Emit(LogEvent logEvent)
+    {
+        throw new System.NotImplementedException();
+    }
+}
+
+class TypeName
+{
+    public static void Test()
+    {
+        /*
+        <add key=""serilog:write-to:Sink.sink"" value=""TestSink, TestProject, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"" />
+        */
+        ILogger test = new LoggerConfiguration()
+            .WriteTo.Sink(new TestSink())
+            .CreateLogger();
+    }
+}";
+            VerifyCSharpRefactoring(test, fixtest, "Show <appSettings> config");
         }
     }
 }

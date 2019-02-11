@@ -7,7 +7,11 @@ namespace SerilogAnalyzer
     class LoggerConfiguration
     {
         public string MinimumLevel { get; set; }
+        public string MinimumLevelControlledBy { get; set; }
         public Dictionary<string, string> MinimumLevelOverrides { get; set; } = new Dictionary<string, string>();
+        public Dictionary<string, string> LevelSwitches { get; set; } = new Dictionary<string, string>();
+        public List<ExtensibleMethod> Filter { get; set; } = new List<ExtensibleMethod>();
+        public List<ExtensibleMethod> Destructure { get; set; } = new List<ExtensibleMethod>();
         public List<ExtensibleMethod> WriteTo { get; set; } = new List<ExtensibleMethod>();
         public List<ExtensibleMethod> AuditTo { get; set; } = new List<ExtensibleMethod>();
         public List<ExtensibleMethod> Enrich { get; set; } = new List<ExtensibleMethod>();

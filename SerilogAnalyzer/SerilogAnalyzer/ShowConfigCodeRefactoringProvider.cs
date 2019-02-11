@@ -48,16 +48,12 @@ namespace SerilogAnalyzer
 
             LoggerConfiguration configuration = GetLoggerConfigurationFromSyntax(context, semanticModel, configurationProperties);
 
-            var appSettingsApplicable = configuration.Enrich.Count > 0 || configuration.EnrichWithProperty.Count > 0 ||
-                                        configuration.MinimumLevel != null || configuration.WriteTo.Count > 0 || configuration.AuditTo.Count > 0;
+            var appSettingsApplicable = configuration.Enrich.Count > 0 || configuration.EnrichWithProperty.Count > 0 || configuration.MinimumLevel != null || configuration.WriteTo.Count > 0 || configuration.Destructure.Count > 0
+                                        || configuration.AuditTo.Count > 0 || configuration.MinimumLevelOverrides.Count > 0 || configuration.Filter.Count > 0 || configuration.MinimumLevelControlledBy != null;
 
             if (appSettingsApplicable)
             {
                 context.RegisterRefactoring(CodeAction.Create("Show <appSettings> config", c => InsertConfigurationComment(context.Document, firstProperty, root, configuration, GetAppSettingsConfiguration, c)));
-            }
-
-            if (appSettingsApplicable || configuration.MinimumLevelOverrides.Count > 0)
-            {
                 context.RegisterRefactoring(CodeAction.Create("Show appsettings.json config", c => InsertConfigurationComment(context.Document, firstProperty, root, configuration, GetAppSettingsJsonConfiguration, c)));
             }
         }
@@ -180,6 +176,27 @@ namespace SerilogAnalyzer
                         }
                         continue;
                     }
+                    else if (logLevel == "ControlledBy")
+                    {
+                        var argument = (invokedMethod?.Parent as InvocationExpressionSyntax)?.ArgumentList?.Arguments.FirstOrDefault();
+                        if (argument == null)
+                        {
+                            configuration.AddError("Can't get parameter value for MinimumLevel.ControlledBy(...)", invokedMethod);
+                            continue;
+                        }
+
+                        var identifier = argument?.Expression as IdentifierNameSyntax;
+                        if (identifier == null)
+                        {
+                            configuration.AddError("Failed to analyze parameter", argument);
+                            continue;
+                        }
+
+                        TryAddLoggingLevelSwitch(semanticModel, identifier, configuration, context.CancellationToken);
+
+                        configuration.MinimumLevelControlledBy = "$" + identifier.Identifier.Value;
+                        continue;
+                    }
                     else if (LogLevels.Contains(logLevel))
                     {
                         value = logLevel;
@@ -240,15 +257,18 @@ namespace SerilogAnalyzer
                             configuration.EnrichWithProperty[key] = value;
                         }
                     }
-                    else if (((invokedMethod.Name as GenericNameSyntax)?.Identifier.ToString() ?? invokedMethod.Name.ToString()) == "With")
-                    {
-                        configuration.AddError("Configuration cannot express Enrich.With<T>() / Enrich.With(params)", invokedMethod);
-                        continue;
-                    }
                     else
                     {
                         AddExtensibleMethod(semanticModel, invokedMethod, configuration, configuration.Enrich.Add, context.CancellationToken);
                     }
+                }
+                else if (configAction == "Destructure")
+                {
+                    AddExtensibleMethod(semanticModel, invokedMethod, configuration, configuration.Destructure.Add, context.CancellationToken);
+                }
+                else if (configAction == "Filter")
+                {
+                    AddExtensibleMethod(semanticModel, invokedMethod, configuration, configuration.Filter.Add, context.CancellationToken);
                 }
                 else if (configAction == "WriteTo")
                 {
@@ -265,16 +285,52 @@ namespace SerilogAnalyzer
 
         private static void AddExtensibleMethod(SemanticModel semanticModel, MemberAccessExpressionSyntax invokedMethod, LoggerConfiguration configuration, Action<ExtensibleMethod> addMethod, CancellationToken cancellationToken)
         {
+            var methodSymbol = semanticModel.GetSymbolInfo(invokedMethod).Symbol as IMethodSymbol;
             var method = new ExtensibleMethod
             {
-                AssemblyName = semanticModel.GetSymbolInfo(invokedMethod).Symbol?.ContainingAssembly?.Name,
-                MethodName = invokedMethod.Name.ToString()
+                AssemblyName = methodSymbol?.ContainingAssembly?.Name,
+                MethodName = invokedMethod.Name.Identifier.ToString()
             };
 
             if (String.IsNullOrEmpty(method.AssemblyName))
             {
                 configuration.AddError("Failed to get semantic informations for this method", invokedMethod);
                 return;
+            }
+
+            // Check for explicitly given type arguments that are not part of the normal arguments
+            if (methodSymbol.TypeArguments.Length > 0 && methodSymbol.TypeArguments.Length == methodSymbol.TypeParameters.Length)
+            {
+                for (int i = 0; i < methodSymbol.TypeArguments.Length; i++)
+                {
+                    var typeParamter = methodSymbol.TypeParameters[i];
+                    var typeArgument = methodSymbol.TypeArguments[i];
+
+                    if (methodSymbol.Parameters.Any(x => x.Type == typeParamter))
+                    {
+                        continue;
+                    }
+
+                    // Synthesize an System.Type argument if a generic version was used
+                    switch (typeParamter.Name)
+                    {
+                        case "TSink": // WriteTo/AuditTo.Sink<TSink>(...)
+                            method.Arguments["sink"] = GetAssemblyQualifiedTypeName(typeArgument);
+                            break;
+                        case "TEnricher": // Enrich.With<TEnricher>()
+                            method.Arguments["enricher"] = GetAssemblyQualifiedTypeName(typeArgument);
+                            break;
+                        case "TFilter": // Filter.With<TFilter>()
+                            method.Arguments["filter"] = GetAssemblyQualifiedTypeName(typeArgument);
+                            break;
+                        case "TDestructuringPolicy": // Destructure.With<TDestructuringPolicy>()
+                            method.Arguments["policy"] = GetAssemblyQualifiedTypeName(typeArgument);
+                            break;
+                        case "TScalar": // Destructure.AsScalar<TScalar>()
+                            method.Arguments["scalarType"] = GetAssemblyQualifiedTypeName(typeArgument);
+                            break;
+                    }
+                }
             }
 
             var arguments = (invokedMethod?.Parent as InvocationExpressionSyntax)?.ArgumentList?.Arguments ?? default(SeparatedSyntaxList<ArgumentSyntax>);
@@ -287,9 +343,77 @@ namespace SerilogAnalyzer
                     continue;
                 }
 
-                if (parameter.Type?.TypeKind == TypeKind.Interface)
+                string parameterName = parameter.Name;
+
+                // Configuration Surrogates
+                if (method.MethodName == "Sink" && parameterName == "logEventSink") // WriteTo/AuditTo.Sink(ILogEventSink logEventSink, ...)
                 {
-                    method.Arguments[parameter.Name] = NotAConstantReplacementValue;
+                    parameterName = "sink"; // Sink(this LoggerSinkConfiguration loggerSinkConfiguration, ILogEventSink sink, LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum, LoggingLevelSwitch levelSwitch = null)
+                }
+                else if (method.MethodName == "With" && parameterName == "filters") // Filter.With(params ILogEventFilter[] filters)
+                {
+                    parameterName = "filter"; // With(this LoggerFilterConfiguration loggerFilterConfiguration, ILogEventFilter filter)
+                }
+                else if (method.MethodName == "With" && parameterName == "destructuringPolicies") // Destructure.With(params IDestructuringPolicy[] destructuringPolicies)
+                {
+                    parameterName = "policy"; // With(this LoggerDestructuringConfiguration loggerDestructuringConfiguration, IDestructuringPolicy policy)
+                }
+                else if (method.MethodName == "With" && parameterName == "enrichers") // Enrich.With(params ILogEventEnricher[] enrichers)
+                {
+                    parameterName = "enricher"; // With(this LoggerEnrichmentConfiguration loggerEnrichmentConfiguration, ILogEventEnricher enricher)
+                }
+
+                ITypeSymbol type = parameter.Type;
+                if (parameter.IsParams && type is IArrayTypeSymbol array)
+                {
+                    type = array.ElementType;
+                }
+
+                if (type.ToString() == "System.Type")
+                {
+                    method.Arguments[parameterName] = NotAConstantReplacementValue;
+
+                    var typeofExpression = argument.Expression as TypeOfExpressionSyntax;
+                    if (typeofExpression == null)
+                    {
+                        configuration.AddError("I need a typeof(T) expression for Type arguments", argument.Expression);
+                        continue;
+                    }
+
+                    var typeInfo = semanticModel.GetTypeInfo(typeofExpression.Type).Type as INamedTypeSymbol;
+                    if (typeInfo == null)
+                    {
+                        configuration.AddError("Failed to get semantic informations for typeof expression", typeofExpression);
+                        return;
+                    }
+
+                    // generate the assembly qualified name for usage with Type.GetType(string)
+                    string name = GetAssemblyQualifiedTypeName(typeInfo);
+                    method.Arguments[parameterName] = name;
+                    continue;
+                }
+                else if (type.TypeKind == TypeKind.Interface || type.TypeKind == TypeKind.Class && type.IsAbstract)
+                {
+                    method.Arguments[parameterName] = NotAConstantReplacementValue;
+
+                    var expressionSymbol = semanticModel.GetSymbolInfo(argument.Expression).Symbol;
+                    if (expressionSymbol != null && (expressionSymbol.Kind == SymbolKind.Property || expressionSymbol.Kind == SymbolKind.Field))
+                    {
+                        if (!expressionSymbol.IsStatic)
+                        {
+                            configuration.AddError("Only static fields and properties can be used", argument.Expression);
+                            continue;
+                        }
+
+                        if (expressionSymbol.DeclaredAccessibility != Accessibility.Public || expressionSymbol is IPropertySymbol property && property.GetMethod.DeclaredAccessibility != Accessibility.Public)
+                        {
+                            configuration.AddError("Fields and properties must be public and properties must have public getters", argument.Expression);
+                            continue;
+                        }
+
+                        method.Arguments[parameterName] = GetAssemblyQualifiedTypeName(expressionSymbol.ContainingType, "::" + expressionSymbol.Name);
+                        continue;
+                    }
 
                     var objectCreation = argument.Expression as ObjectCreationExpressionSyntax;
                     if (objectCreation == null)
@@ -301,7 +425,7 @@ namespace SerilogAnalyzer
                     // check if there are explicit arguments which are unsupported
                     if (objectCreation.ArgumentList?.Arguments.Count > 0)
                     {
-                        configuration.AddError("The configuration supports only parameterless constructors for interface parameters", argument.Expression);
+                        configuration.AddError("The configuration supports only parameterless constructors for interface or abstract type parameters", argument.Expression);
                         continue;
                     }
 
@@ -314,7 +438,21 @@ namespace SerilogAnalyzer
 
                     // generate the assembly qualified name for usage with Type.GetType(string)
                     string name = GetAssemblyQualifiedTypeName(typeInfo);
-                    method.Arguments[parameter.Name] = name;
+                    method.Arguments[parameterName] = name;
+                    continue;
+                }
+                else if (type.ToString() == "Serilog.Core.LoggingLevelSwitch")
+                {
+                    var identifier = argument?.Expression as IdentifierNameSyntax;
+                    if (identifier == null)
+                    {
+                        configuration.AddError("Failed to analyze parameter", argument);
+                        continue;
+                    }
+
+                    TryAddLoggingLevelSwitch(semanticModel, identifier, configuration, cancellationToken);
+
+                    method.Arguments[parameterName] = "$" + identifier.Identifier.Value;
                     continue;
                 }
 
@@ -327,9 +465,9 @@ namespace SerilogAnalyzer
                 }
                 else
                 {
-                    if (parameter.Type.TypeKind == TypeKind.Enum)
+                    if (type.TypeKind == TypeKind.Enum)
                     {
-                        var enumMember = parameter.Type.GetMembers().OfType<IFieldSymbol>().FirstOrDefault(x => Convert.ToInt64(x.ConstantValue) == Convert.ToInt64(constValue.Value));
+                        var enumMember = type.GetMembers().OfType<IFieldSymbol>().FirstOrDefault(x => Convert.ToInt64(x.ConstantValue) == Convert.ToInt64(constValue.Value));
                         value = enumMember.Name;
                     }
                     else
@@ -338,13 +476,105 @@ namespace SerilogAnalyzer
                     }
                 }
 
-                method.Arguments[parameter.Name] = value;
+                method.Arguments[parameterName] = value;
             }
 
             addMethod(method);
         }
 
-        private static string GetAssemblyQualifiedTypeName(ITypeSymbol type)
+        private static void TryAddLoggingLevelSwitch(SemanticModel semanticModel, IdentifierNameSyntax identifier, LoggerConfiguration configuration, CancellationToken cancellationToken)
+        {
+            string name = "$" + identifier.Identifier.Value;
+            if (configuration.LevelSwitches.ContainsKey(name))
+            {
+                return;
+            }
+
+            var symbol = semanticModel.GetSymbolInfo(identifier, cancellationToken).Symbol;
+            if (symbol == null)
+            {
+                configuration.AddError("Failed to analyze parameter", identifier);
+                return;
+            }
+
+            var reference = symbol.DeclaringSyntaxReferences.FirstOrDefault() as SyntaxReference;
+            if (reference == null)
+            {
+                configuration.AddError("Could not find declaration of LoggingLevelSwitch", identifier);
+                return;
+            }
+
+            var declarator = reference.GetSyntax(cancellationToken) as VariableDeclaratorSyntax;
+            if (declarator == null)
+            {
+                configuration.AddError("Could not find declaration of LoggingLevelSwitch", identifier);
+                return;
+            }
+
+            var initializer = declarator.Initializer.Value as ObjectCreationExpressionSyntax;
+            if (initializer == null)
+            {
+                configuration.AddError("Could not find initialization of LoggingLevelSwitch", identifier);
+                return;
+            }
+
+            IParameterSymbol parameter;
+            object value;
+            var argument = initializer.ArgumentList.Arguments.FirstOrDefault();
+            if (argument == null)
+            {
+                var constructor = semanticModel.GetSymbolInfo(initializer, cancellationToken).Symbol;
+                if (constructor == null)
+                {
+                    configuration.AddError("Could not analyze LoggingLevelSwitch constructor", identifier);
+                    return;
+                }
+
+                parameter = (symbol as IMethodSymbol)?.Parameters.FirstOrDefault();
+                if (parameter == null)
+                {
+                    configuration.AddError("Could not analyze LoggingLevelSwitch constructor", identifier);
+                    return;
+                }
+
+                value = parameter.ExplicitDefaultValue;
+            }
+            else
+            {
+                parameter = RoslynHelper.DetermineParameter(argument, semanticModel, false, cancellationToken);
+                if (parameter == null)
+                {
+                    configuration.AddError("Failed to analyze parameter", argument);
+                    return;
+                }
+
+                var constValue = semanticModel.GetConstantValue(argument.Expression, cancellationToken);
+                if (!constValue.HasValue)
+                {
+                    configuration.AddNonConstantError(argument);
+                    return;
+                }
+
+                value = constValue.Value;
+            }
+
+            long enumIntegralValue;
+            try
+            {
+                enumIntegralValue = Convert.ToInt64(value);
+            }
+            catch
+            {
+                configuration.AddError($"Value {value} is not within expected range", argument);
+                return;
+            }
+
+            // Roslyn returns enum constant values as integers, convert it back to the enum member name
+            var enumMember = parameter.Type.GetMembers().OfType<IFieldSymbol>().FirstOrDefault(x => Convert.ToInt64(x.ConstantValue) == enumIntegralValue);
+            configuration.LevelSwitches.Add(name, enumMember.Name);
+        }
+
+        private static string GetAssemblyQualifiedTypeName(ITypeSymbol type, string typeSuffix = null)
         {
             var display = new SymbolDisplayFormat(typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces);
             string name = type.ToDisplayString(display);
@@ -354,6 +584,11 @@ namespace SerilogAnalyzer
             {
                 name += "`" + namedType.Arity;
                 name += "[" + String.Join(", ", namedType.TypeArguments.Select(x => "[" + GetAssemblyQualifiedTypeName(x) + "]")) + "]";
+            }
+
+            if (typeSuffix != null)
+            {
+                name += typeSuffix;
             }
 
             name += ", " + type.ContainingAssembly.ToString();
@@ -377,9 +612,24 @@ namespace SerilogAnalyzer
         {
             var configEntries = new List<XElement>();
 
+            foreach (var kvp in configuration.LevelSwitches)
+            {
+                AddEntry(configEntries, "serilog:level-switch:" + kvp.Key, kvp.Value);
+            }
+
             if (configuration.MinimumLevel != null)
             {
                 AddEntry(configEntries, "serilog:minimum-level", configuration.MinimumLevel);
+            }
+
+            if (configuration.MinimumLevelControlledBy != null)
+            {
+                AddEntry(configEntries, "serilog:minimum-level:controlled-by", configuration.MinimumLevelControlledBy);
+            }
+
+            foreach (var kvp in configuration.MinimumLevelOverrides)
+            {
+                AddEntry(configEntries, "serilog:minimum-level:override:" + kvp.Key, kvp.Value);
             }
 
             foreach (var kvp in configuration.EnrichWithProperty)
@@ -390,6 +640,16 @@ namespace SerilogAnalyzer
             foreach (var enrichment in configuration.Enrich)
             {
                 ConvertExtensibleMethod(configEntries, enrichment, "serilog:enrich");
+            }
+
+            foreach (var filter in configuration.Filter)
+            {
+                ConvertExtensibleMethod(configEntries, filter, "serilog:filter");
+            }
+
+            foreach (var destructure in configuration.Destructure)
+            {
+                ConvertExtensibleMethod(configEntries, destructure, "serilog:destructure");
             }
 
             foreach (var writeTo in configuration.WriteTo)
@@ -403,7 +663,7 @@ namespace SerilogAnalyzer
             }
 
             var usedSuffixes = new HashSet<string>();
-            foreach (var usedAssembly in configuration.Enrich.Concat(configuration.WriteTo).Concat(configuration.AuditTo).Select(x => x.AssemblyName).Distinct())
+            foreach (var usedAssembly in configuration.Enrich.Concat(configuration.WriteTo).Concat(configuration.AuditTo).Select(x => x.AssemblyName).Where(x => x != "Serilog").Distinct())
             {
                 if (usedAssembly != "Serilog")
                 {
@@ -418,7 +678,7 @@ namespace SerilogAnalyzer
 
             var sb = new StringBuilder();
             sb.AppendLine("/*");
-            if (configuration.HasParsingErrors || configuration.MinimumLevelOverrides.Count > 0)
+            if (configuration.HasParsingErrors)
             {
                 sb.AppendLine("Errors:");
                 foreach (var log in configuration.ErrorLog)
@@ -427,11 +687,6 @@ namespace SerilogAnalyzer
                 }
                 if (configuration.ErrorLog.Count > 0)
                 {
-                    sb.AppendLine();
-                }
-                if (configuration.MinimumLevelOverrides.Count > 0)
-                {
-                    sb.AppendLine("MinimumLevelOverrides are not supported in <appSettings>");
                     sb.AppendLine();
                 }
             }
@@ -489,17 +744,27 @@ namespace SerilogAnalyzer
             bool needsComma = false;
 
             // technically it's not correct to abuse roslyn to escape the string literals for us but csharp strings look very much like js string literals so...
-            string usings = String.Join(", ", configuration.Enrich.Concat(configuration.WriteTo).Concat(configuration.AuditTo).Select(x => x.AssemblyName).Distinct().Select(x => SyntaxFactory.Literal(x).ToString()));
+            string usings = String.Join(", ", configuration.Enrich.Concat(configuration.WriteTo).Concat(configuration.AuditTo).Select(x => x.AssemblyName).Where(x => x != "Serilog").Distinct().Select(x => SyntaxFactory.Literal(x).ToString()));
             if (!String.IsNullOrEmpty(usings))
             {
                 sb.AppendFormat(@"  ""Using"": [{0}]", usings);
                 needsComma = true;
             }
 
-            if (configuration.MinimumLevel != null || configuration.MinimumLevelOverrides.Any())
+            if (configuration.LevelSwitches.Count > 0)
             {
                 FinishPreviousLine(sb, ref needsComma);
-                if (!configuration.MinimumLevelOverrides.Any())
+
+                string switches = String.Join(", ", configuration.LevelSwitches.Select(x => SyntaxFactory.Literal(x.Key).ToString() + ": " + SyntaxFactory.Literal(x.Value).ToString()));
+                sb.AppendFormat(@"  ""LevelSwitches"": {{ {0} }}", switches);
+
+                needsComma = true;
+            }
+
+            if (configuration.MinimumLevel != null || configuration.MinimumLevelControlledBy != null || configuration.MinimumLevelOverrides.Any())
+            {
+                FinishPreviousLine(sb, ref needsComma);
+                if (!configuration.MinimumLevelOverrides.Any() && configuration.MinimumLevelControlledBy == null)
                 {
                     sb.AppendFormat(@"  ""MinimumLevel"": {0}", SyntaxFactory.Literal(configuration.MinimumLevel).ToString());
                 }
@@ -509,26 +774,45 @@ namespace SerilogAnalyzer
 
                     if (configuration.MinimumLevel != null)
                     {
-                        sb.AppendFormat(@"    ""Default"": {0},", SyntaxFactory.Literal(configuration.MinimumLevel).ToString());
+                        sb.AppendFormat(@"    ""Default"": {0}", SyntaxFactory.Literal(configuration.MinimumLevel).ToString());
+
+                        needsComma = true;
+                    }
+
+                    if (configuration.MinimumLevelControlledBy != null)
+                    {
+                        FinishPreviousLine(sb, ref needsComma);
+
+                        sb.AppendFormat(@"    ""ControlledBy"": {0}", SyntaxFactory.Literal(configuration.MinimumLevelControlledBy).ToString());
+
+                        needsComma = true;
+                    }
+
+                    int remaining = configuration.MinimumLevelOverrides.Count;
+                    if (remaining > 0)
+                    {
+                        FinishPreviousLine(sb, ref needsComma);
+
+                        sb.AppendLine(@"    ""Override"": {");
+                        foreach (var levelOverride in configuration.MinimumLevelOverrides)
+                        {
+                            sb.AppendFormat("      {0}: {1}", SyntaxFactory.Literal(levelOverride.Key).ToString(), SyntaxFactory.Literal(levelOverride.Value).ToString());
+
+                            if (--remaining > 0)
+                            {
+                                sb.AppendLine(",");
+                            }
+                            else
+                            {
+                                sb.AppendLine();
+                            }
+                        }
+                        sb.AppendLine(@"    }");
+                    }
+                    else
+                    {
                         sb.AppendLine();
                     }
-
-                    sb.AppendLine(@"    ""Override"": {");
-                    int remaining = configuration.MinimumLevelOverrides.Count;
-                    foreach (var levelOverride in configuration.MinimumLevelOverrides)
-                    {
-                        sb.AppendFormat("      {0}: {1}", SyntaxFactory.Literal(levelOverride.Key).ToString(), SyntaxFactory.Literal(levelOverride.Value).ToString());
-
-                        if (--remaining > 0)
-                        {
-                            sb.AppendLine(",");
-                        }
-                        else
-                        {
-                            sb.AppendLine();
-                        }
-                    }
-                    sb.AppendLine(@"    }");
 
                     sb.Append(@"  }");
                 }
@@ -555,6 +839,22 @@ namespace SerilogAnalyzer
             {
                 FinishPreviousLine(sb, ref needsComma);
                 WriteMethodCalls(configuration.Enrich, sb, "Enrich");
+
+                needsComma = true;
+            }
+
+            if (configuration.Destructure.Any())
+            {
+                FinishPreviousLine(sb, ref needsComma);
+                WriteMethodCalls(configuration.Destructure, sb, "Destructure");
+
+                needsComma = true;
+            }
+
+            if (configuration.Filter.Any())
+            {
+                FinishPreviousLine(sb, ref needsComma);
+                WriteMethodCalls(configuration.Filter, sb, "Filter");
 
                 needsComma = true;
             }
