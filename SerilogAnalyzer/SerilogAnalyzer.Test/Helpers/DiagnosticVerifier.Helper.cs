@@ -39,9 +39,11 @@ namespace TestHelper
         private static readonly MetadataReference CSharpSymbolsReference = MetadataReference.CreateFromFile(typeof(CSharpCompilation).Assembly.Location);
         private static readonly MetadataReference CodeAnalysisReference = MetadataReference.CreateFromFile(typeof(Compilation).Assembly.Location);
         private static readonly MetadataReference SerilogReference = MetadataReference.CreateFromFile(typeof(ILogger).Assembly.Location);
+        private static readonly MetadataReference SerilogConsoleReference = MetadataReference.CreateFromFile(typeof(ConsoleLoggerConfigurationExtensions).Assembly.Location);
         private static readonly MetadataReference SerilogLiterateReference = MetadataReference.CreateFromFile(typeof(LoggerConfigurationLiterateExtensions).Assembly.Location);
         private static readonly MetadataReference SerilogFileReference = MetadataReference.CreateFromFile(typeof(FileLoggerConfigurationExtensions).Assembly.Location);
         private static readonly MetadataReference SerilogRollingFileReference = MetadataReference.CreateFromFile(typeof(RollingFileLoggerConfigurationExtensions).Assembly.Location);
+        private static readonly MetadataReference SerilogFilterExpressionsReference = MetadataReference.CreateFromFile(typeof(LoggerFilterConfigurationExtensions).Assembly.Location);
 
         internal static string DefaultFilePathPrefix = "Test";
         internal static string CSharpDefaultFileExt = "cs";
@@ -203,9 +205,11 @@ namespace TestHelper
                 .AddMetadataReference(projectId, CSharpSymbolsReference)
                 .AddMetadataReference(projectId, CodeAnalysisReference)
                 .AddMetadataReference(projectId, SerilogReference)
+                .AddMetadataReference(projectId, SerilogConsoleReference)
                 .AddMetadataReference(projectId, SerilogLiterateReference)
                 .AddMetadataReference(projectId, SerilogFileReference)
-                .AddMetadataReference(projectId, SerilogRollingFileReference);
+                .AddMetadataReference(projectId, SerilogRollingFileReference)
+                .AddMetadataReference(projectId, SerilogFilterExpressionsReference);
 
             int count = 0;
             foreach (var source in sources)
