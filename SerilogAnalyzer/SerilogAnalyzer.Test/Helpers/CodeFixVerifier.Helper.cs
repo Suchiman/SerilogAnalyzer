@@ -13,12 +13,8 @@
 // limitations under the License.
 
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeActions;
-using Microsoft.CodeAnalysis.Formatting;
-using Microsoft.CodeAnalysis.Simplification;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 namespace TestHelper
 {
