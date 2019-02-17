@@ -38,7 +38,7 @@ namespace SerilogAnalyzer
             }
 
             // From all the syntax in the fluent configuration, grab the properties (WriteTo, ...)
-            var configurationProperties = descendants.OfType<MemberAccessExpressionSyntax>().Where(x => InterestingProperties.Contains(x.Name.ToString())).ToList();
+            var configurationProperties = descendants.OfType<MemberAccessExpressionSyntax>().Where(x => InterestingProperties.Contains(x.Name.ToString())).Reverse().ToList();
 
             var firstProperty = configurationProperties.FirstOrDefault();
             if (firstProperty == null)

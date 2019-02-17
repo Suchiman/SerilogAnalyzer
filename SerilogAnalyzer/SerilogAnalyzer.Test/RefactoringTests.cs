@@ -325,8 +325,8 @@ class TypeName
           ""MinimumLevel"": {
             ""Default"": ""Debug"",
             ""Override"": {
-              ""System"": ""Fatal"",
-              ""Microsoft"": ""Warning""
+              ""Microsoft"": ""Warning"",
+              ""System"": ""Fatal""
             }
           }
         }
@@ -369,8 +369,8 @@ class TypeName
         ""Serilog"": {
           ""MinimumLevel"": {
             ""Override"": {
-              ""System"": ""Fatal"",
-              ""Microsoft"": ""Warning""
+              ""Microsoft"": ""Warning"",
+              ""System"": ""Fatal""
             }
           }
         }
@@ -409,8 +409,8 @@ class TypeName
     public static void Test()
     {
         /*
-        <add key=""serilog:minimum-level:override:System"" value=""Fatal"" />
         <add key=""serilog:minimum-level:override:Microsoft"" value=""Warning"" />
+        <add key=""serilog:minimum-level:override:System"" value=""Fatal"" />
         */
         ILogger test = new LoggerConfiguration()
             .MinimumLevel.Override(""Microsoft"", Serilog.Events.LogEventLevel.Warning)
@@ -447,8 +447,8 @@ class TypeName
     public static void Test()
     {
         /*
-        <add key=""serilog:minimum-level:override:System"" value=""Fatal"" />
         <add key=""serilog:minimum-level:override:Microsoft"" value=""Warning"" />
+        <add key=""serilog:minimum-level:override:System"" value=""Fatal"" />
         <add key=""serilog:write-to:RollingFile.pathFormat"" value=""logfile.txt"" />
         <add key=""serilog:using:RollingFile"" value=""Serilog.Sinks.RollingFile"" />
         */
@@ -1227,11 +1227,11 @@ class TypeName
     public static void Test()
     {
         /*
-        <add key=""serilog:destructure:With.policy"" value=""CustomPolicy, TestProject, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"" />
-        <add key=""serilog:destructure:AsScalar.scalarType"" value=""System.Version, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"" />
-        <add key=""serilog:destructure:ToMaximumCollectionCount.maximumCollectionCount"" value=""3"" />
-        <add key=""serilog:destructure:ToMaximumStringLength.maximumStringLength"" value=""3"" />
         <add key=""serilog:destructure:ToMaximumDepth.maximumDestructuringDepth"" value=""3"" />
+        <add key=""serilog:destructure:ToMaximumStringLength.maximumStringLength"" value=""3"" />
+        <add key=""serilog:destructure:ToMaximumCollectionCount.maximumCollectionCount"" value=""3"" />
+        <add key=""serilog:destructure:AsScalar.scalarType"" value=""System.Version, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"" />
+        <add key=""serilog:destructure:With.policy"" value=""CustomPolicy, TestProject, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"" />
         */
         ILogger test = new LoggerConfiguration()
             .Destructure.ToMaximumDepth(maximumDestructuringDepth: 3)
@@ -1299,11 +1299,11 @@ class TypeName
         /*
         ""Serilog"": {
           ""Destructure"": [
-            { ""Name"": ""With"", ""Args"": { ""policy"": ""CustomPolicy, TestProject, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"" } },
-            { ""Name"": ""AsScalar"", ""Args"": { ""scalarType"": ""System.Version, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"" } },
-            { ""Name"": ""ToMaximumCollectionCount"", ""Args"": { ""maximumCollectionCount"": ""3"" } },
+            { ""Name"": ""ToMaximumDepth"", ""Args"": { ""maximumDestructuringDepth"": ""3"" } },
             { ""Name"": ""ToMaximumStringLength"", ""Args"": { ""maximumStringLength"": ""3"" } },
-            { ""Name"": ""ToMaximumDepth"", ""Args"": { ""maximumDestructuringDepth"": ""3"" } }
+            { ""Name"": ""ToMaximumCollectionCount"", ""Args"": { ""maximumCollectionCount"": ""3"" } },
+            { ""Name"": ""AsScalar"", ""Args"": { ""scalarType"": ""System.Version, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"" } },
+            { ""Name"": ""With"", ""Args"": { ""policy"": ""CustomPolicy, TestProject, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"" } }
           ]
         }
         */
