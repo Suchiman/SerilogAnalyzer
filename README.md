@@ -33,7 +33,7 @@ The `ex` parameter is an exception, which Serilog has special handling for if pa
 ```csharp
 catch (Exception ex)
 {
-   Log.Error(ex, "Could not save {File}");
+   Log.Error(ex, "Could not save {File}", file);
 }
 ```
 
