@@ -10,6 +10,7 @@
     <projectUrl>https://github.com/Suchiman/SerilogAnalyzer</projectUrl>
     <iconUrl>https://raw.githubusercontent.com/Suchiman/SerilogAnalyzer/master/SerilogAnalyzer/SerilogAnalyzer.Vsix/analyzer-200px.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <developmentDependency>true</developmentDependency>
     <description>Roslyn-based analysis for code using the Serilog logging library. Checks for common mistakes and usage problems.</description>
     <copyright>Copyright 2016 Robin Sue</copyright>
     <tags>Serilog, analyzers</tags>
