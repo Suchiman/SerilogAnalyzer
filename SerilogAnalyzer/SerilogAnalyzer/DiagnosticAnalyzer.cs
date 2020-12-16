@@ -77,15 +77,16 @@ namespace SerilogAnalyzer
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(ExceptionRule, TemplateRule, PropertyBindingRule, ConstantMessageTemplateRule, UniquePropertyNameRule, PascalPropertyNameRule, DestructureAnonymousObjectsRule, UseCorrectContextualLoggerRule);
 
-        private const string ILogger = "Serilog.ILogger";
-        private const string ForContext = "ForContext";
+        protected virtual string ILogger => "Serilog.ILogger";
+        protected virtual string ForContext => "ForContext";
+        protected virtual string LoggerMethodAttribute => "Serilog.Core.MessageTemplateFormatMethodAttribute";
 
         public override void Initialize(AnalysisContext context)
         {
             context.RegisterSyntaxNodeAction(AnalyzeSymbol, SyntaxKind.InvocationExpression);
         }
 
-        private static void AnalyzeSymbol(SyntaxNodeAnalysisContext context)
+        private void AnalyzeSymbol(SyntaxNodeAnalysisContext context)
         {
             var invocation = context.Node as InvocationExpressionSyntax;
             var info = context.SemanticModel.GetSymbolInfo(invocation, context.CancellationToken);
@@ -96,7 +97,7 @@ namespace SerilogAnalyzer
             }
 
             // is serilog even present in the compilation?
-            var messageTemplateAttribute = context.SemanticModel.Compilation.GetTypeByMetadataName("Serilog.Core.MessageTemplateFormatMethodAttribute");
+            var messageTemplateAttribute = context.SemanticModel.Compilation.GetTypeByMetadataName(LoggerMethodAttribute);
             if (messageTemplateAttribute == null)
             {
                 return;
@@ -268,7 +269,7 @@ namespace SerilogAnalyzer
             }
         }
 
-        private static void CheckForContextCorrectness(ref SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocation, IMethodSymbol method)
+        private void CheckForContextCorrectness(ref SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocation, IMethodSymbol method)
         {
             // is this really a field / property?
             var decl = invocation.Ancestors().OfType<MemberDeclarationSyntax>().FirstOrDefault();
